@@ -1,7 +1,7 @@
 {
   "name": "sahibinden-car-mcp",
-  "version": "0.1.2",
-  "description": "Local MCP server that lets Claude search, inspect and compare sahibinden.com car listings from pages you saved yourself (no scraping, no network requests).",
+  "version": "0.2.0",
+  "description": "Local MCP server that lets Claude search, inspect and compare sahibinden.com car listings from pages you saved yourself (no scraping and no network requests by default; optional opt-in browser mode).",
   "keywords": [
     "mcp",
     "model-context-protocol",

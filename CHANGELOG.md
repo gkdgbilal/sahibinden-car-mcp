@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-11-18
+
+Default behaviour is unchanged: without `SAHIBINDEN_BROWSER_MODE=on` the server registers the same 5 tools as 0.1.2 and makes no network requests.
+
+### Added
+- Opt-in **browser mode** (`SAHIBINDEN_BROWSER_MODE=on`, off by default): drives a visible Chrome window that the user starts with `npm run chrome` (dedicated profile, no logins recommended) over the local DevTools port, and feeds the pages through the existing parser/store.
+- Tools `browser_status` (never navigates), `live_search` (same filters as `search_cars` plus `maxPages`, default 3, hard maximum 10) and `live_get_listings` (default 3, maximum 10), registered only when the mode is on (8 tools instead of 5).
+- Allow-listed, dependency-free CDP client over Node's built-in `WebSocket` (loopback only); no new dependencies.
+- Fixed, cross-process limits: at least 5 s between pages, 3 (max 10) pages per call, 30 (max 60) pages per hour, 60 s cool-down after a verification page, one call at a time, 180 s per call.
+- Stop-on-challenge: a Cloudflare verification page ends the call, keeps the tab open for the user to pass it, and blocks further navigation (`challenge-pending`) until it is cleared; no retries, no hiding, no solving.
+- Structured status values (`ok`, `partial`, `disabled`, `unsupported-runtime`, `not-running`, `challenge-detected`, `challenge-pending`, `login-required`, `unexpected-page`, `timeout`, `navigation-error`, `deadline`, `hourly-cap`, `busy`) with Turkish `message`/`userAction`.
+- Audit log `browser-log.jsonl` (URL, page type, HTTP status, counts; never HTML).
+- Turkish Cloudflare challenge page detection ("Bir dakika lütfen...") in `detectPageType`, which also hardens the import flow.
+- README "Browser mode (opt-in)" section with terms-of-use/account-risk warning, setup, limits, security note about the local debugging port, and configuration variables (`SAHIBINDEN_BROWSER_*`, `SAHIBINDEN_CHROME_PATH`).
+- Smoke test now covers browser mode off (5 tools), on without Chrome (8 tools, `not-running`) and a fake-page-source `live_search`/`live_get_listings` flow.
+
+### Changed
+- `engines.node` is now `>=22.12` (Node 20 is end-of-life; browser mode needs the built-in `WebSocket`).
+- `ping` output has an additional `browserMode` field (`disabled` / `enabled`).
+
 ## [0.1.2] - 2026-11-18
 
 ### Fixed

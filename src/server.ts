@@ -15,6 +15,15 @@ import {
 import {
   IMPORT_LISTING_HTML_DESCRIPTION, importListingHtmlHandler, importListingHtmlInput, importListingHtmlOutput,
 } from './tools/import-listing-html.js';
+import {
+  BROWSER_STATUS_DESCRIPTION, browserStatusHandler, browserStatusInput, browserStatusOutput,
+} from './tools/browser-status.js';
+import {
+  LIVE_SEARCH_DESCRIPTION, liveSearchHandler, liveSearchInput, liveSearchOutput,
+} from './tools/live-search.js';
+import {
+  LIVE_GET_LISTINGS_DESCRIPTION, liveGetListingsHandler, liveGetListingsInput, liveGetListingsOutput,
+} from './tools/live-get-listings.js';
 
 export function ok<T extends object>(out: T) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(out) }], structuredContent: out };
@@ -68,6 +77,30 @@ export function createServer(deps: ToolDeps) {
     },
     (args) => run('import_listing_html', () => importListingHtmlHandler(args, deps)),
   );
+
+  // Tarayıcı modu (varsayılan KAPALI): yalnızca deps.live verilmişse kaydedilir; aksi halde tool listesi 5 tool'dur.
+  if (deps.live) {
+    server.registerTool(
+      'browser_status',
+      { title: 'Tarayıcı durumu', description: BROWSER_STATUS_DESCRIPTION, inputSchema: browserStatusInput, outputSchema: browserStatusOutput },
+      (args) => run('browser_status', () => browserStatusHandler(args, deps)),
+    );
+    server.registerTool(
+      'live_search',
+      { title: 'Canlı arama (tarayıcı)', description: LIVE_SEARCH_DESCRIPTION, inputSchema: liveSearchInput, outputSchema: liveSearchOutput },
+      (args) => run('live_search', () => liveSearchHandler(args, deps)),
+    );
+    server.registerTool(
+      'live_get_listings',
+      {
+        title: 'Canlı ilan detayı (tarayıcı)',
+        description: LIVE_GET_LISTINGS_DESCRIPTION,
+        inputSchema: liveGetListingsInput,
+        outputSchema: liveGetListingsOutput,
+      },
+      (args) => run('live_get_listings', () => liveGetListingsHandler(args, deps)),
+    );
+  }
 
   return server;
 }
