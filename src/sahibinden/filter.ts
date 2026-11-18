@@ -21,9 +21,12 @@ export interface Evaluation {
 
 // Sahibinden etiketleri (foldTr ile katlanmış) -> filtre değeri. Dolu ama listede olmayan etiket (ör. Siyah) hiçbir renk filtresine uymaz.
 const COLOR_LABELS: Record<Color, string[]> = {
-  beige: ['bej'], white: ['beyaz'], burgundy: ['bordo'], 'smoke-gray': ['fume'], gray: ['gri'],
-  'silver-gray': ['gumus gri', 'gumus'], brown: ['kahverengi'], red: ['kirmizi'], navy: ['lacivert'],
-  blue: ['mavi'], purple: ['mor'], pink: ['pembe'],
+  beige: ['bej', 'beige'], white: ['beyaz', 'white'], burgundy: ['bordo', 'burgundy'], 'smoke-gray': ['fume', 'smoke gray'],
+  gray: ['gri', 'gray', 'grey'], 'silver-gray': ['gumus gri', 'gumus', 'silver gray', 'silver'],
+  brown: ['kahverengi', 'brown'], red: ['kirmizi', 'red'], navy: ['lacivert', 'navy'], blue: ['mavi', 'blue'],
+  purple: ['mor', 'purple'], pink: ['pembe', 'pink'], yellow: ['sari', 'yellow'], black: ['siyah', 'black'],
+  champagne: ['sampanya', 'champagne'], turquoise: ['turkuaz', 'turquoise'], orange: ['turuncu', 'orange'],
+  green: ['yesil', 'green'],
 };
 const BODY_LABELS: Record<BodyType, string[]> = {
   cabrio: ['cabrio', 'cabriolet'], coupe: ['coupe'], 'coupe-4-door': ['coupe 4 kapi'],

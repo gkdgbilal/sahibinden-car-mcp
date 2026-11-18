@@ -12,12 +12,17 @@ export const BodyTypeSchema = z.enum([
 ]);
 export const ColorSchema = z.enum([
   'beige', 'white', 'burgundy', 'smoke-gray', 'gray', 'silver-gray', 'brown', 'red', 'navy', 'blue', 'purple', 'pink',
+  'yellow', 'black', 'champagne', 'turquoise', 'orange', 'green',
 ]);
 export const VehicleConditionSchema = z.enum(['second-hand', 'imported-new', 'new']);
 export const EnginePowerSchema = z.enum([
-  'upto-50', '51-75', '76-100', '101-125', '126-150', '151-175', '176-200', '201-225',
+  'upto-50', '51-75', '76-100', '101-125', '126-150', '151-175', '176-200', '201-225', '226-250', '251-275',
+  '276-300', '301-325', '326-350', '351-375', '376-400', '401-425', '426-450', '451-475', '476-500', '501-525',
+  '526-550', '551-575', '576-600', '601-up',
 ]);
-export const EngineVolumeSchema = z.enum(['upto-1300', '1301-1600', '1601-1800', '1801-2000', '2001-2500']);
+export const EngineVolumeSchema = z.enum([
+  'upto-1300', '1301-1600', '1601-1800', '1801-2000', '2001-2500', '5501-6000', '6001-up',
+]);
 export const DrivetrainSchema = z.enum(['fwd', 'rwd', '4wd', 'awd']);
 export const ListedWithinSchema = z.enum(['1day', '3days', '7days', '15days', '30days']);
 export const UnknownPolicySchema = z.enum(['include', 'exclude']);

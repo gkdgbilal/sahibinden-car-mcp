@@ -14,12 +14,12 @@ Her `searchCarsInput` alanı için iki soru: (1) yerel mağazadaki ilanlara uygu
 | fuel | evet | evet | evet | evet | eşitlik |
 | yearMin / yearMax | evet | evet | evet | evet | sayısal aralık |
 | kmMin / kmMax | evet | evet | evet | evet | sayısal aralık |
-| color | hayır | evet | evet | evet | `listing.color` etiketi (Bej, Beyaz, ... ) `foldTr` ile; dolu ama filtrede olmayan renk (Siyah) hiçbir renk filtresine uymaz |
+| color | hayır | evet | evet | evet | `listing.color` etiketi (Bej, Beyaz, ... ) `foldTr` ile; 18 renk (Siyah, Sarı, Şampanya, Turkuaz, Turuncu, Yeşil dahil; Türkçe ve İngilizce etiket); dolu ama listede olmayan renk hiçbir renk filtresine uymaz |
 | bodyType | hayır | evet | evet | evet | detay `bodyType` etiketi (`Hatchback 5 Kapı` vb.) |
 | sellerType | hayır | evet | evet | evet | detay `sellerType` |
 | vehicleCondition | hayır | evet | evet | evet | detay `vehicleCondition` (İkinci El / İthal Sıfır / Sıfır) |
-| enginePower | hayır | evet | evet | evet | `url-schema` id anahtarlarından türetilen (alt, üst] hp aralığı; `engine.powerHp` |
-| engineVolume | hayır | evet | evet | evet | aynı şekilde cc aralığı; `engine.volumeCc` |
+| enginePower | hayır | evet | evet | evet | `url-schema` id anahtarlarından türetilen (alt, üst] hp aralığı; `engine.powerHp`; 24 aralık, "601-up" açık uçlu |
+| engineVolume | hayır | evet | evet | evet | aynı şekilde cc aralığı; `engine.volumeCc`; "6001-up" açık uçlu |
 | drivetrain | hayır | evet | evet | evet | detay `drivetrain` (Önden/Arkadan/4WD/AWD) |
 | exchange | hayır | evet | evet | evet | detay `exchange` (true/false) |
 | warranty (yeni) | - | - | evet | evet | detay `warranty`; URL `a4054` (72906 Evet, 72907 Hayır) |
@@ -41,6 +41,8 @@ Her `searchCarsInput` alanı için iki soru: (1) yerel mağazadaki ilanlara uygu
 
 ## Kalan sınırlar
 
+- Motor hacmi 2501-5500 cc aralıklarının sahibinden kimlikleri alınmadı; yalnızca 5501-6000 ve 6001+ var (bu aralıklar için filtre sunulmuyor).
+- Hibrit türleri (Plug-in, Hafif Hibrit) ayrı seçilemez: `fuel: hybrid` yalnızca Benzin(Hibrit) (a17=1312756) olur; diğer kimlikler URL `note`unda listelenir. Yerel `hybrid` hepsini kapsar.
 - Yarı otomatik vites URL'ye yansımaz (kimlik bilinmiyor); yerelde uygulanır.
 - 55 ve 34 dışındaki il plaka kodları URL'de doğrulanmadı (yerel şehir filtresi etkilenmez).
 - Etiket eşlemeleri (renk, kasa, çekiş, araç durumu) sahibinden'in Türkçe metnine dayanır; tanınmayan çekiş/araç durumu etiketi, dolu ama eşleşmeyen değer sayıldığı için o filtreyle eler.

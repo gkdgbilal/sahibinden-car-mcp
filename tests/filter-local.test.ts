@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { appliedFilterNames, evaluateQuery, matchesQuery } from '../src/sahibinden/filter.js';
-import { ENGINE_POWER_RANGES, ENGINE_VOLUME_RANGES } from '../src/sahibinden/url-schema.js';
+import { buildSearchUrls } from '../src/sahibinden/url-builder.js';
+import { COLOR_IDS, ENGINE_POWER_IDS, ENGINE_POWER_RANGES, ENGINE_VOLUME_RANGES } from '../src/sahibinden/url-schema.js';
 import { SearchQuerySchema, type Listing } from '../src/sahibinden/types.js';
 
 const q = (o: object) => SearchQuerySchema.parse(o);
@@ -24,6 +25,18 @@ describe('yerel filtre: pozitif + negatif', () => {
     expect(ok(mk({ color: 'KIRMIZI' }), { color: 'red' })).toBe(true);
     expect(ok(mk({ color: 'Siyah' }), { color: 'white' })).toBe(false);
     expect(evaluateQuery(mk({ color: null }), q({ color: 'white' })).unknownFields).toEqual(['color']);
+  });
+  it('eksik renkler: Siyah hem URL kimliğine hem yerel filtreye yansır', () => {
+    const cases = [['black', 'Siyah'], ['yellow', 'Sarı'], ['champagne', 'Şampanya'], ['turquoise', 'Turkuaz'], ['orange', 'Turuncu'], ['green', 'Yeşil']] as const;
+    for (const [color, label] of cases) {
+      expect(ok(mk({ color: label }), { color })).toBe(true);
+      expect(ok(mk({ color: label.toUpperCase() }), { color })).toBe(true);
+      expect(ok(mk({ color: 'Beyaz' }), { color })).toBe(false);
+      expect(ok(mk({ color: label }), { color: 'white' })).toBe(false);
+    }
+    expect(ok(mk({ color: 'Black' }), { color: 'black' })).toBe(true);
+    expect(COLOR_IDS.black).toBe('33616');
+    expect(buildSearchUrls(q({ color: 'black' }))[0]!.url).toContain('a3=33616');
   });
   it('bodyType', () => {
     expect(ok(mk(), { bodyType: 'hatchback-5-door' })).toBe(true);
@@ -78,6 +91,36 @@ describe('yerel filtre: pozitif + negatif', () => {
     expect(ok(hp(40), { enginePower: 'upto-50' })).toBe(true);
     expect(evaluateQuery(hp(null), q({ enginePower: '76-100' })).unknownFields).toEqual(['enginePower']);
     expect(evaluateQuery(mk({ engine: null }), q({ enginePower: '76-100' })).unknownFields).toEqual(['enginePower']);
+  });
+  it('motor gücü: yeni aralıklar ve "601 HP ve üzeri" açık uçlu', () => {
+    expect(ENGINE_POWER_RANGES['601-up']).toEqual({ lo: 600, hi: Infinity });
+    const hp = (powerHp: number) => mk({ engine: { volumeCc: 3000, powerHp } });
+    expect(ok(hp(230), { enginePower: '226-250' })).toBe(true);
+    expect(ok(hp(226), { enginePower: '226-250' })).toBe(true);
+    expect(ok(hp(225), { enginePower: '226-250' })).toBe(false);
+    expect(ok(hp(250), { enginePower: '226-250' })).toBe(true);
+    expect(ok(hp(251), { enginePower: '226-250' })).toBe(false);
+    expect(ok(hp(600), { enginePower: '576-600' })).toBe(true);
+    expect(ok(hp(600), { enginePower: '601-up' })).toBe(false);
+    expect(ok(hp(601), { enginePower: '601-up' })).toBe(true);
+    expect(ok(hp(1001), { enginePower: '601-up' })).toBe(true);
+    expect(ok(hp(601), { enginePower: '576-600' })).toBe(false);
+    for (const k of Object.keys(ENGINE_POWER_IDS)) expect(ENGINE_POWER_RANGES[k as keyof typeof ENGINE_POWER_RANGES]).toBeDefined();
+    expect(Object.keys(ENGINE_POWER_IDS)).toHaveLength(24);
+    expect(ENGINE_POWER_IDS['601-up']).toBe('74365');
+    expect(buildSearchUrls(q({ enginePower: '601-up' }))[0]!.url).toContain('a2320=74365');
+  });
+  it('motor hacmi: yeni aralıklar ve "6001 cc ve üzeri" açık uçlu', () => {
+    const cc = (volumeCc: number) => mk({ engine: { volumeCc, powerHp: 105 } });
+    expect(ok(cc(5800), { engineVolume: '5501-6000' })).toBe(true);
+    expect(ok(cc(5500), { engineVolume: '5501-6000' })).toBe(false);
+    expect(ok(cc(6000), { engineVolume: '5501-6000' })).toBe(true);
+    expect(ok(cc(6000), { engineVolume: '6001-up' })).toBe(false);
+    expect(ok(cc(6001), { engineVolume: '6001-up' })).toBe(true);
+    expect(ok(cc(8000), { engineVolume: '6001-up' })).toBe(true);
+    expect(ok(cc(1598), { engineVolume: '6001-up' })).toBe(false);
+    expect(buildSearchUrls(q({ engineVolume: '6001-up' }))[0]!.url).toContain('a1864=74369');
+    expect(buildSearchUrls(q({ engineVolume: '5501-6000' }))[0]!.url).toContain('a1864=74368');
   });
   it('engineVolume', () => {
     const cc = (volumeCc: number | null) => mk({ engine: { volumeCc, powerHp: 105 } });

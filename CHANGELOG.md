@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `search_cars` price filter now respects currency: `priceMin`/`priceMax` apply in `priceCurrency` (default TL) and listings in another currency are excluded instead of slipping through as "unknown" (no conversion).
 - The new filters (color, body type, seller type, vehicle condition, engine power, engine volume, drivetrain, trade-in, listed within, unpainted, no replaced parts, price currency) no longer only shape the URL; they now filter the local store too. Detail fields are read from the full listing record when it exists.
+- Truncated URL ID lists completed from the live site: six missing colors (yellow, black, champagne, turquoise, orange, green), engine power ranges 226-250 up to 601+ hp (open-ended), engine volume 5501-6000 and 6001+ cc (open-ended). The 2501-5500 cc range IDs are still unknown.
 
 ### Added
 - `noHeavyDamage` (URL `a116445=1263354`) and `warranty` (URL `a4054`) filters, verified on the live site, applied locally and in the URL.

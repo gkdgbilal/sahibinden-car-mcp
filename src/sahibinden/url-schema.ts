@@ -70,6 +70,7 @@ export const BODY_TYPE_IDS: Record<BodyType, string> = {
 export const COLOR_IDS: Record<Color, string> = {
   beige: '655354', white: '33611', burgundy: '33617', 'smoke-gray': '658878', gray: '33612',
   'silver-gray': '40948', brown: '33621', red: '33613', navy: '33615', blue: '33610', purple: '33624', pink: '40167',
+  yellow: '33614', black: '33616', champagne: '675106', turquoise: '44926', orange: '40148', green: '33618',
 };
 
 export const VEHICLE_CONDITION_IDS: Record<VehicleCondition, string> = {
@@ -80,26 +81,34 @@ export const VEHICLE_CONDITION_IDS: Record<VehicleCondition, string> = {
 export const ENGINE_POWER_IDS: Record<EnginePower, string> = {
   'upto-50': '1096156', '51-75': '1096158', '76-100': '74344', '101-125': '74345',
   '126-150': '74346', '151-175': '74347', '176-200': '74348', '201-225': '74349',
+  '226-250': '74350', '251-275': '74351', '276-300': '74352', '301-325': '74353', '326-350': '74354',
+  '351-375': '74355', '376-400': '74356', '401-425': '74357', '426-450': '74358', '451-475': '74359',
+  '476-500': '74360', '501-525': '74361', '526-550': '74362', '551-575': '74363', '576-600': '74364',
+  '601-up': '74365', // "601 HP ve üzeri"
 };
 
 export const ENGINE_VOLUME_IDS: Record<EngineVolume, string> = {
   'upto-1300': '51977', '1301-1600': '1118042', '1601-1800': '51979', '1801-2000': '51980', '2001-2500': '51981',
+  // 2501-5500 aralıklarının kimlikleri henüz alınmadı (sitede var; eklenmedi, uydurulmadı).
+  '5501-6000': '74368', '6001-up': '74369', // "6001 cc ve üzeri"
 };
 
 export interface NumericRange {
   /** Alt sınır (dahil değil); "upto-N" için -Infinity. */
   lo: number;
-  /** Üst sınır (dahil). */
+  /** Üst sınır (dahil); "... ve üzeri" için +Infinity. */
   hi: number;
 }
 
-/** "upto-1300" -> (-inf,1300]; "1301-1600" -> (1300,1600]. Etiketler yukarıdaki kimlik tablolarının anahtarlarıdır. */
+/** "upto-1300" -> (-inf,1300]; "1301-1600" -> (1300,1600]; "601-up" -> (600,+inf). Etiketler yukarıdaki kimlik tablolarının anahtarlarıdır. */
 function rangesFromKeys<K extends string>(keys: readonly K[]): Record<K, NumericRange> {
   const out = {} as Record<K, NumericRange>;
   for (const k of keys) {
     const up = /^upto-(\d+)$/.exec(k);
+    const open = /^(\d+)-up$/.exec(k);
     const mid = /^(\d+)-(\d+)$/.exec(k);
     if (up) out[k] = { lo: -Infinity, hi: Number(up[1]) };
+    else if (open) out[k] = { lo: Number(open[1]) - 1, hi: Infinity };
     else if (mid) out[k] = { lo: Number(mid[1]) - 1, hi: Number(mid[2]) };
     else throw new Error(`Aralık anahtarı tanınmadı: ${k}`);
   }

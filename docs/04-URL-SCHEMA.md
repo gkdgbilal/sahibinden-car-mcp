@@ -31,10 +31,10 @@ Kaynak: kullanıcının kendi Chrome oturumunda gerçek sahibinden sayfasından,
 | `a17` | Yakıt | 21 Benzin, 22 Dizel, 50276 Benzin(LPG), 1202111 Elektrik, 1312756 Benzin(Hibrit), 1312757 Benzin(Plug-in Hibrit), 1312755 Benzin(Hafif Hibrit), 1312754 Dizel(Hafif Hibrit) |
 | `a706` | Kimden | 32474 Sahibinden, 32475 Galeriden, 1160380 Yetkili Bayiden |
 | `a8` | Kasa | 240 Cabrio, 48626 Coupe, 1263542 Coupe 4 kapı, 20 Hatchback 3 kapı, 62068 Hatchback 5 kapı, 250 Sedan, 19 Station Wagon, 1197465 MPV, 1197466 Roadster |
-| `a3` | Renk | 655354 Bej, 33611 Beyaz, 33617 Bordo, 658878 Füme, 33612 Gri, 40948 Gümüş Gri, 33621 Kahverengi, 33613 Kırmızı, 33615 Lacivert, 33610 Mavi, 33624 Mor, 40167 Pembe |
+| `a3` | Renk | 655354 Bej, 33611 Beyaz, 33617 Bordo, 658878 Füme, 33612 Gri, 40948 Gümüş Gri, 33621 Kahverengi, 33613 Kırmızı, 33615 Lacivert, 33610 Mavi, 33624 Mor, 40167 Pembe, 33614 Sarı, 33616 Siyah, 675106 Şampanya, 44926 Turkuaz, 40148 Turuncu, 33618 Yeşil |
 | `a113987` | Araç durumu | 1252385 İkinci El, 1252386 Yurtdışından İthal Sıfır, 1252387 Sıfır |
-| `a2320` | Motor gücü aralığı (`a17` yakıt kimlikleriyle karıştırılmamalı) | 1096156 ≤50 hp, 1096158 51-75, 74344 76-100, 74345 101-125, 74346 126-150, 74347 151-175, 74348 176-200, 74349 201-225 |
-| `a1864` | Motor hacmi aralığı | 51977 ≤1300 cc, 1118042 1301-1600, 51979 1601-1800, 51980 1801-2000, 51981 2001-2500 |
+| `a2320` | Motor gücü aralığı (`a17` yakıt kimlikleriyle karıştırılmamalı) | 1096156 ≤50 hp, 1096158 51-75, 74344 76-100, 74345 101-125, 74346 126-150, 74347 151-175, 74348 176-200, 74349 201-225, 74350 226-250, 74351 251-275, 74352 276-300, 74353 301-325, 74354 326-350, 74355 351-375, 74356 376-400, 74357 401-425, 74358 426-450, 74359 451-475, 74360 476-500, 74361 501-525, 74362 526-550, 74363 551-575, 74364 576-600, 74365 601 hp ve üzeri (araç anahtarı `601-up`, açık uçlu) |
+| `a1864` | Motor hacmi aralığı | 51977 ≤1300 cc, 1118042 1301-1600, 51979 1601-1800, 51980 1801-2000, 51981 2001-2500, 74368 5501-6000, 74369 6001 cc ve üzeri (`6001-up`, açık uçlu). **2501-5500 aralıklarının kimlikleri henüz alınmadı**, eklenmedi |
 | `a9213` | Çekiş | 136269 Önden, 136270 Arkadan, 136271 4WD, 136272 AWD |
 | `a116445` | Ağır Hasar Kayıtlı | 1263353 Evet, 1263354 Hayır (araç: `noHeavyDamage` -> 1263354) |
 | `a4054` | Servis Garantisi | 72906 Evet, 72907 Hayır (araç: `warranty`) |

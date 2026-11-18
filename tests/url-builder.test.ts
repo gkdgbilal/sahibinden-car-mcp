@@ -55,6 +55,8 @@ describe('buildSearchUrls', () => {
     expect(params({ bodyType: 'sedan' }).a8).toBe('250');
     expect(params({ color: 'silver-gray' }).a3).toBe('40948');
     expect(params({ color: 'white' }).a3).toBe('33611');
+    const extra = { yellow: '33614', black: '33616', champagne: '675106', turquoise: '44926', orange: '40148', green: '33618' };
+    for (const [color, id] of Object.entries(extra)) expect(params({ color }).a3).toBe(id);
     expect(params({ vehicleCondition: 'imported-new' }).a113987).toBe('1252386');
     expect(params({ drivetrain: 'awd' }).a9213).toBe('136272');
     expect(params({ drivetrain: 'fwd' }).a9213).toBe('136269');
@@ -64,6 +66,11 @@ describe('buildSearchUrls', () => {
     expect(params({ enginePower: 'upto-50' }).a2320).toBe('1096156');
     expect(params({ enginePower: '101-125' }).a2320).toBe('74345');
     expect(params({ enginePower: '201-225' }).a2320).toBe('74349');
+    expect(params({ enginePower: '226-250' }).a2320).toBe('74350');
+    expect(params({ enginePower: '576-600' }).a2320).toBe('74364');
+    expect(params({ enginePower: '601-up' }).a2320).toBe('74365');
+    expect(params({ engineVolume: '5501-6000' }).a1864).toBe('74368');
+    expect(params({ engineVolume: '6001-up' }).a1864).toBe('74369');
     expect(params({ engineVolume: 'upto-1300' }).a1864).toBe('51977');
     expect(params({ engineVolume: '1301-1600' }).a1864).toBe('1118042');
     expect(params({ engineVolume: '2001-2500' }).a1864).toBe('51981');
