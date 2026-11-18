@@ -4,43 +4,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-- Verified sahibinden URL parameters (2026-11-18): transmission, fuel, seller type, body type, color, vehicle condition, engine power/volume, drivetrain, exchange, listing date, unpainted/unchanged-parts, 8 sort orders, `pagingOffset`, `price_currency`; documented in `docs/04-URL-SCHEMA.md`.
-- 81-province plate-code table with Turkish folding; only Samsun (55) and Istanbul (34) are verified, others are flagged in the URL `note`.
-- New zod-enum fields on `search_cars`; `cityHint` on `import_listing_html`; optional `neighborhood` and `locationRaw` on listing summaries.
-
-### Changed
-- City is now sent as `address_city={plate code}` instead of a path suffix; brand-only search uses `/{brand}`.
-- Search parser reads the location cell by page context ("Province District" vs "District Neighborhood"); ambiguous cells are kept in `locationRaw` with a warning.
-
-### Removed
-- Unverified `pagingSize` parameter.
-
 ## [0.1.0] - 2026-11-18
 
-First version. Not yet published.
+First public release.
 
-### Added
+### Features
 - MCP server over stdio built on `@modelcontextprotocol/server` v2 with zod 4 schemas; logs go to stderr only.
-- Inbox-based import flow: no network requests to sahibinden.com, no anti-bot bypass, no cookies or account needed.
+- Inbox-based import flow: no network requests to sahibinden.com, no anti-bot bypass, no cookies or account needed. You save a page from your own browser (Cmd+S) and the server imports it.
 - Tools: `ping`, `search_cars`, `get_listing`, `compare_cars`, `import_listing_html`.
-- Label-based HTML parser (cheerio) for saved search and listing pages, with page type detection (search / listing / challenge / unknown), Turkish value normalizers and per-listing `warnings`.
+- Label-based HTML parser (cheerio) for saved search and listing pages, with page type detection (search / listing / challenge / unknown), Turkish value normalizers and per-listing `warnings`. Checked against real saved search and detail pages (2026-11-18).
+- Listing detail: price, year, km, fuel, transmission, engine, body type, drivetrain, seller type, trade-in, per-part paint/replaced map, description and location (province / district / neighborhood from the address breadcrumb).
 - Challenge-page detection that reports half-loaded saved pages as skipped instead of importing them.
 - Local JSON store with de-duplication by listing number, capture time and price history.
 - Filtering and sorting in `search_cars` with `unknownFields` marking for listings that lack a filtered field.
-- Sahibinden search URL builder returned by `search_cars`; low-confidence parameters (transmission/fuel IDs) are omitted with a note.
+- Sahibinden search URL builder with URL parameters verified on 2026-11-18 (year, km, price, transmission, fuel, seller type, body type, color, condition, power, volume, drivetrain, trade-in, date, unpainted / unchanged-parts, 8 sort orders, paging); see `docs/04-URL-SCHEMA.md`. City is sent as `address_city={plate code}` with a 81-province table (only Samsun 55 and Istanbul 34 are verified live; others are flagged in the URL `note`).
+- Search page location is read by page context ("Province District" vs "District Neighborhood" when a city filter is active).
 - `compare_cars` statistics: age, km per year, price difference versus set median, damage/paint/replaced part counts.
 - Privacy: seller name, phone and profile are not parsed or stored; descriptions are truncated to 4000 characters and flagged as untrusted text.
 - Environment variables `SAHIBINDEN_MCP_HOME` and `LOG_LEVEL`.
 - Vitest suite with synthetic fixtures and a stdio end-to-end smoke script (`npm run smoke`).
 - README, MIT license and this changelog.
 
-### Fixed
-- Listing detail location is now read from the verified `Adres Breadcrumb` links (province / district / neighborhood), falling back to `#gmap` `data-*` attributes; the "location not verified" caveat is gone (verified 2026-11-18). `neighborhood` is also filled on detail pages.
-
 ### Known limitations
-- URL filter parameters are partly unverified against the live site (`verified: false` in `src/sahibinden/url-schema.ts`).
-- Parser validated only with synthetic fixtures so far.
+- Plate codes other than 55 and 34 are not verified against the live site.
+- Search pages give no brand/series (only the model/trim cell); detail pages do.
+- New `search_cars` filters (color, body type, ...) only shape the sahibinden URL; the local store filter does not apply them.
 - Safari `.webarchive` files are not supported.
