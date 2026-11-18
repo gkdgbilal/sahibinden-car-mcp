@@ -168,3 +168,137 @@ describe('parseListingPage', () => {
     expect(parseListingPage(noDamage, ctx).damage).toBeNull();
   });
 });
+
+describe('gerçek yapıyı taklit eden fixture: arama', () => {
+  const html = fx('real-shape.search.html');
+  const r = parseSearchPage(html, ctx);
+
+  it('sayfa tipi search', () => {
+    expect(detectPageType(html)).toBe('search');
+  });
+  it('data-id ile 3 ilan, nativeAd satırları atlanır', () => {
+    expect(r.items.map((i) => i.id)).toEqual(['1000000101', '1000000102', '1000000103']);
+    expect(r.warnings).toEqual([]);
+  });
+  it('ilk öğe: yıl/km/renk, fiyat, tarih, konum, URL', () => {
+    expect(r.items[0]).toEqual({
+      id: '1000000101',
+      url: 'https://www.sahibinden.com/ilan/vasita-otomobil-ornekmarka-orekseri-ornek-baslik-bir-1000000101/detay',
+      title: 'Örnek başlık bir',
+      brand: null,
+      series: null,
+      model: '1.3 CDTI Enjoy',
+      year: 2006,
+      km: 226000,
+      color: 'Gümüş Gri',
+      price: 549000,
+      currency: 'TL',
+      city: 'Kocaeli',
+      district: 'Körfez',
+      listingDate: '2026-11-18',
+      transmission: null,
+      fuel: null,
+      source: 'search',
+      capturedAt: ctx.capturedAt,
+    });
+  });
+  it('başlık href="#" iken URL thumbnail bağlantısından; favori metni başlığa sızmaz', () => {
+    expect(r.items[1]!.url).toBe(
+      'https://www.sahibinden.com/ilan/vasita-otomobil-ornekmarka-orekseri-ornek-baslik-iki-1000000102/detay',
+    );
+    for (const i of r.items) {
+      expect(i.title).not.toContain('Favori');
+      expect(() => ListingSummarySchema.parse(i)).not.toThrow();
+    }
+  });
+  it('boşlukla ayrık il/ilçe ve EUR', () => {
+    expect(r.items[1]).toMatchObject({ city: 'İstanbul', district: 'Kadıköy', price: 1020000 });
+    expect(r.items[2]).toMatchObject({ currency: 'EUR', price: 7500, city: 'Samsun', district: 'Atakum' });
+    expect(r.items[2]!.title).toBe('Örnek başlık üç Škoda');
+  });
+  it('toplam ilan sayısı ve sayfalama', () => {
+    expect(r.totalCount).toBe(2836);
+    expect(r.pagination).toEqual({ offsets: [20, 40, 60], pageSize: 20 });
+  });
+  it('sayfalama/toplam yoksa null', () => {
+    const plain = parseSearchPage(fx('search.synthetic.html'), ctx);
+    expect(plain.pagination).toBeNull();
+    expect(plain.totalCount).toBeNull();
+  });
+});
+
+describe('gerçek yapıyı taklit eden fixture: ilan', () => {
+  const html = fx('real-shape.listing.html');
+  const l = parseListingPage(html, ctx);
+
+  it('sayfa tipi listing', () => {
+    expect(detectPageType(html)).toBe('listing');
+  });
+  it('dt/dd eşleme (baş boşluklu dt, KM etiketi)', () => {
+    expect(l.id).toBe('1000000101');
+    expect(l.title).toBe('Örnek başlık bir');
+    expect(l.brand).toBe('Örnek Marka');
+    expect(l.series).toBe('Örnek Seri');
+    expect(l.model).toBe('1.3 CDTI');
+    expect(l.year).toBe(2006);
+    expect(l.km).toBe(226000);
+    expect(l.color).toBe('Gümüş Gri');
+    expect(l.listingDate).toBe('2026-11-18');
+    expect(l.fuel).toBe('diesel');
+    expect(l.transmission).toBe('manual');
+    expect(l.engine).toEqual({ volumeCc: 1248, powerHp: 90 });
+    expect(l.sellerType).toBe('owner');
+    expect(l.exchange).toBe(true);
+    expect(l.warranty).toBe(false);
+    expect(l.heavyDamage).toBe(false);
+    expect(l.bodyType).toBe('Hatchback 5 Kapı');
+    expect(l.drivetrain).toBe('Önden Çekiş');
+    expect(l.vehicleCondition).toBe('İkinci El');
+    expect(l.attributes['Plaka / Uyruk']).toBe('TR Plakalı');
+  });
+  it('fiyat gürültüsüz (price-all, hidden input)', () => {
+    expect(l.price).toBe(549000);
+    expect(l.currency).toBe('TL');
+  });
+  it('URL canonical, şema uyumlu', () => {
+    expect(l.url).toBe('https://www.sahibinden.com/ilan/vasita-otomobil-ornekmarka-orekseri-ornek-baslik-bir-1000000101/detay');
+    expect(() => ListingSchema.parse(l)).not.toThrow();
+  });
+  it('hasar şeması: lejant hariç, parça sınıfından durum', () => {
+    expect(l.damage).toEqual([
+      { part: 'front-right-mudguard', status: 'painted' },
+      { part: 'front-right-door', status: 'original' },
+      { part: 'rear-right-mudguard', status: 'changed' },
+      { part: 'front-left-mudguard', status: 'local-painted' },
+      { part: 'roof', status: 'original' },
+    ]);
+  });
+  it('metin kısaltması yedeği (sınıf yoksa B/D/L)', () => {
+    const noClass = html
+      .replace('front-right-mudguard painted-new', 'front-right-mudguard')
+      .replace('rear-right-mudguard changed-new', 'rear-right-mudguard');
+    const l2 = parseListingPage(noClass, ctx);
+    expect(l2.damage).toEqual(expect.arrayContaining([
+      { part: 'front-right-mudguard', status: 'painted' },
+      { part: 'rear-right-mudguard', status: 'changed' },
+    ]));
+    expect(l2.warnings).toContain('hasar durumu metin kısaltmasından okundu (doğrulanmadı)');
+  });
+  it('açıklama, telefon maskeli, gizli metin yok', () => {
+    expect(l.description).toContain('Örnek açıklama');
+    expect(l.description).toContain('[telefon]');
+    expect(l.tramerAmount).toBe(12500);
+  });
+  it('satıcı/telefon/gürültü dl sızmaz', () => {
+    const json = JSON.stringify(l);
+    for (const bad of ['0500 000 12 34', '000 12 34', 'Örnek Otomotiv', 'Hesap açma', 'Cep', 'Şifre', 'E-posta']) {
+      expect(json).not.toContain(bad);
+    }
+    expect(json).not.toContain('Favori Listenize');
+    expect(Object.keys(l.attributes)).not.toContain('Cep');
+  });
+  it('konum doğrulanmadı: null + uyarı', () => {
+    expect(l.city).toBeNull();
+    expect(l.warnings.some((w) => w.includes('konum'))).toBe(true);
+  });
+});

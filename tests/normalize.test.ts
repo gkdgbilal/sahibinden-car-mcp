@@ -9,6 +9,10 @@ describe('foldTr', () => {
     expect(foldTr('İzmir')).toBe('izmir');
     expect(foldTr('ÇANKIRI Şişli Öğüt Ğ')).toBe('cankiri sisli ogut g');
   });
+  it('Çek/Latin aksanlarını ASCII yapar', () => {
+    expect(foldTr('Škoda')).toBe('skoda');
+    expect(foldTr('Citroën Žilina')).toBe('citroen zilina');
+  });
   it('boşlukları sadeleştirir', () => {
     expect(foldTr('  il   /  ilçe ')).toBe('il / ilce');
   });
@@ -105,5 +109,23 @@ describe('parseRangeOrNumber', () => {
   it('boş', () => {
     expect(parseRangeOrNumber('')).toBeNull();
     expect(parseRangeOrNumber(undefined)).toBeNull();
+  });
+});
+
+describe('gerçek yapıdaki değer biçimleri', () => {
+  it('"90 hp", "1248 cc", "226.000", "18 Kasım 2026"', () => {
+    expect(parseRangeOrNumber('90 hp')).toBe(90);
+    expect(parseRangeOrNumber('1248 cc')).toBe(1248);
+    expect(parseTrNumber('226.000')).toBe(226000);
+    expect(parseTrDate('18 Kasım 2026')).toBe('2026-11-18');
+    expect(parseTrDate('  18   Kasım\n2026 ')).toBe('2026-11-18');
+  });
+  it('Kimden değerleri', () => {
+    expect(mapSellerType('Sahibinden')).toBe('owner');
+    expect(mapSellerType('Galeriden')).toBe('dealer');
+  });
+  it('yakıt / motor tipi', () => {
+    expect(mapFuel('Dizel')).toBe('diesel');
+    expect(mapFuel('Benzin')).toBe('gasoline');
   });
 });

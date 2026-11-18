@@ -13,6 +13,7 @@ export function foldTr(s: string | null | undefined): string {
     .replace(/ş/g, 's')
     .replace(/ü/g, 'u')
     .replace(/é/g, 'e')
+    .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/\s+/g, ' ')
     .trim();

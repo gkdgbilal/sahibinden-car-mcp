@@ -117,14 +117,53 @@ const CLASS_FALLBACK: Partial<Record<SearchField, string>> = {
   location: '.searchResultsLocationValue',
 };
 
-export function parseSearchPage(
-  html: string,
-  ctx: ParseContext,
-): { items: ListingSummary[]; warnings: string[] } {
+export interface SearchPagination {
+  /** Sayfalama bağlantılarındaki `pagingOffset` değerleri (artan, tekil). */
+  offsets: number[];
+  /** En küçük sıfırdan büyük offset = sayfa boyutu (ör. 20); yoksa null. */
+  pageSize: number | null;
+}
+
+export interface SearchParseResult {
+  items: ListingSummary[];
+  warnings: string[];
+  /** "aramanızda 2.836 ilan bulundu" -> 2836; bulunamazsa null. */
+  totalCount: number | null;
+  pagination: SearchPagination | null;
+}
+
+/** Hücre metni; favori kutusu, gizli input/stil/script ve gizli elemanlar dışlanır. */
+function visibleCellLines($: CheerioAPI, el: Sel): string[] {
+  const copy = el.clone();
+  copy
+    .find('script, style, input, noscript, [hidden], [style*="display:none"], [style*="display: none"]')
+    .remove();
+  return cellLines($, copy);
+}
+
+function extractTotalCount($: CheerioAPI): number | null {
+  const text = clean($('body').text());
+  const m = text.match(/(\d[\d.]*)\s+ilan\s+bulundu/i) ?? text.match(/(\d[\d.]*)\s+ilan\b/i);
+  return m ? parseTrNumber(m[1]) : null;
+}
+
+function extractPagination($: CheerioAPI): SearchPagination | null {
+  const set = new Set<number>();
+  $('ul.pageNaviButtons a[href]').each((_, a) => {
+    const m = ($(a).attr('href') ?? '').match(/[?&]pagingOffset=(\d+)/);
+    if (m) set.add(Number(m[1]));
+  });
+  if (set.size === 0) return null;
+  const offsets = [...set].sort((x, y) => x - y);
+  const pageSize = offsets.find((o) => o > 0) ?? null;
+  return { offsets, pageSize };
+}
+
+export function parseSearchPage(html: string, ctx: ParseContext): SearchParseResult {
   const $ = load(html);
   const warnings: string[] = [];
 
-  // Başlık hücrelerinden sütun indeksleri
+  // Başlık hücrelerinden sütun indeksleri (gerçek sayfada thead gözlemlenemedi; yoksa sınıflara düşer)
   const colIndex: Partial<Record<SearchField, number>> = {};
   const headRow = $('#searchResultsTable thead tr, table thead tr').first();
   headRow.children('th, td').each((i, el) => {
@@ -140,9 +179,22 @@ export function parseSearchPage(
     if (!id) return; // reklam / native satır
 
     const cells = $row.children('td');
+    const tagCells = $row.children('td.searchResultsTagAttributeValue');
+    const attrCells = $row.children('td.searchResultsAttributeValue');
     const get = (field: SearchField): Sel | null => {
       const idx = colIndex[field];
       if (idx !== undefined && cells.get(idx)) return $(cells.get(idx)!);
+      // başlık yoksa konuma/sınıfa göre: etiket hücresi 1 ise model, 2 ise seri+model
+      if (field === 'series') return tagCells.length >= 2 ? $(tagCells.get(0)!) : null;
+      if (field === 'model') {
+        if (tagCells.length >= 2) return $(tagCells.get(1)!);
+        return tagCells.length === 1 ? $(tagCells.get(0)!) : null;
+      }
+      // 3 searchResultsAttributeValue: yıl, km, renk
+      if (field === 'year' || field === 'km' || field === 'color') {
+        const n = field === 'year' ? 0 : field === 'km' ? 1 : 2;
+        return attrCells.get(n) ? $(attrCells.get(n)!) : null;
+      }
       const sel = CLASS_FALLBACK[field];
       if (sel) {
         const found = $row.find(sel).first();
@@ -150,27 +202,37 @@ export function parseSearchPage(
       }
       return null;
     };
-    const text = (field: SearchField): string | null => {
+    const lines = (field: SearchField): string[] => {
       const c = get(field);
-      if (!c) return null;
-      return cellText($, c) || null;
+      return c ? visibleCellLines($, c) : [];
     };
+    const text = (field: SearchField): string | null => lines(field).join(' ') || null;
 
-    const linkHref = $row.find('a.classifiedTitle').first().attr('href');
-    let url = absUrl(linkHref);
+    // URL: önce thumbnail bağlantısı (başlık href'i "#" olabilir), sonra başlık bağlantısı
+    const titleLink = $row.find('a.classifiedTitle').first();
+    const thumbLink = $row.find('td.searchResultsLargeThumbnail a[href^="/ilan/"]').first();
+    const anyIlan = $row.find('a[href^="/ilan/"]').first();
+    let url = absUrl(thumbLink.attr('href')) ?? absUrl(anyIlan.attr('href')) ?? absUrl(titleLink.attr('href'));
     if (!url) {
       url = `${SITE}/ilan/${id}/detay`;
       warnings.push(`${id}: ilan bağlantısı bulunamadı, URL üretildi`);
     }
-    const titleLink = $row.find('a.classifiedTitle').first();
-    const title = clean(titleLink.text()) || text('title') || '';
+    const title =
+      clean(titleLink.text()) ||
+      clean($row.find('td.searchResultsLargeThumbnail a[title]').first().attr('title')) ||
+      text('title') ||
+      '';
 
     const priceText = text('price');
     const price = parseTrNumber(priceText);
     if (price === null) warnings.push(`${id}: fiyat okunamadı`);
 
-    const locCell = get('location');
-    const locLines = locCell ? cellLines($, locCell) : [];
+    // il / ilçe: <br> ile ayrık ya da boşlukla ("Kocaeli Körfez" -> il + ilçe; varsayım: il tek kelime)
+    let locLines = lines('location');
+    if (locLines.length === 1) {
+      const parts = locLines[0]!.split(' ');
+      if (parts.length >= 2) locLines = [parts[0]!, parts.slice(1).join(' ')];
+    }
 
     items.push({
       id,
@@ -195,20 +257,83 @@ export function parseSearchPage(
   });
 
   if (items.length === 0) warnings.push('arama sayfasında ilan satırı bulunamadı');
-  return { items, warnings };
+  return { items, warnings, totalCount: extractTotalCount($), pagination: extractPagination($) };
 }
 
 // ---------- ilan detay sayfası ----------
 
+/**
+ * Gerçek sayfada <dl><dt>etiket</dt><dd>değer</dd>; sayfada başka dl/dt blokları da var
+ * (giriş formu, satıcı kutusu) → yalnızca bilinen etiketler alınır.
+ */
+const KNOWN_DT_LABELS = new Set([
+  'ilan no', 'ilan tarihi', 'marka', 'seri', 'model', 'yil', 'yakit / motor tipi', 'yakit',
+  'vites', 'arac durumu', 'km', 'kilometre', 'kasa tipi', 'motor gucu', 'motor hacmi', 'cekis',
+  'renk', 'servis garantisi', 'garanti', 'agir hasar kayitli', 'plaka / uyruk', 'kimden', 'takas',
+  'tramer',
+]);
+
 function extractAttributes($: CheerioAPI): Record<string, string> {
   const attrs: Record<string, string> = {};
+  // eski/sentetik yapı: ul.classifiedInfoList > li > strong + span
   $('.classifiedInfoList li').each((_, li) => {
     const label = clean($(li).find('strong').first().text());
     const value = clean($(li).find('span').first().text());
     if (!label || PRIVATE_LABELS.has(foldTr(label))) return;
     attrs[label] = value;
   });
+  // gerçek yapı: dt (baş/son boşluklu) + sonraki dd
+  $('dt').each((_, dt) => {
+    const label = clean($(dt).text());
+    const key = foldTr(label);
+    if (!label || PRIVATE_LABELS.has(key) || !KNOWN_DT_LABELS.has(key)) return;
+    if (label in attrs) return;
+    const dd = $(dt).nextAll('dd').first();
+    if (!dd.length) return;
+    const copy = dd.clone();
+    copy.find('script, style, input, [hidden], [style*="display:none"], [style*="display: none"]').remove();
+    attrs[label] = clean(copy.text());
+  });
   return attrs;
+}
+
+const DAMAGE_CLASS_STATUS: Record<string, PartStatus> = {
+  original: 'original',
+  'local-painted-new': 'local-painted',
+  'painted-new': 'painted',
+  'changed-new': 'changed',
+};
+/** Metin kısaltmaları (varsayım, doğrulanmadı): B boyalı, D değişen, L lokal boyalı. */
+const DAMAGE_TEXT_STATUS: Record<string, PartStatus> = {
+  B: 'painted',
+  D: 'changed',
+  L: 'local-painted',
+};
+
+/** .damage-area: lejant (.car-damage-info) hariç, durum sınıfı taşıyan her eleman bir parçadır. */
+function extractDamageArea($: CheerioAPI, warnings: string[]): { part: string; status: PartStatus }[] | null {
+  const area = $('.damage-area').first();
+  if (!area.length) return null;
+  const out: { part: string; status: PartStatus }[] = [];
+  let textFallback = false;
+  area.find('*').each((_, el) => {
+    const $el = $(el);
+    if ($el.closest('.car-damage-info').length) return;
+    const classes = ($el.attr('class') ?? '').split(/\s+/).filter(Boolean);
+    const statusClass = classes.find((c) => c in DAMAGE_CLASS_STATUS);
+    const rest = classes.filter((c) => !(c in DAMAGE_CLASS_STATUS));
+    if (statusClass) {
+      if (rest[0]) out.push({ part: rest[0], status: DAMAGE_CLASS_STATUS[statusClass]! });
+      return;
+    }
+    const t = clean($el.text());
+    if (rest.length === 1 && t in DAMAGE_TEXT_STATUS && $el.children().length === 0) {
+      out.push({ part: rest[0]!, status: DAMAGE_TEXT_STATUS[t]! });
+      textFallback = true;
+    }
+  });
+  if (textFallback) warnings.push('hasar durumu metin kısaltmasından okundu (doğrulanmadı)');
+  return out.length ? out : null;
 }
 
 function extractDamage($: CheerioAPI): { part: string; status: PartStatus }[] | null {
@@ -231,6 +356,21 @@ function extractDamage($: CheerioAPI): { part: string; status: PartStatus }[] | 
   return found ? out : null;
 }
 
+/** Fiyat metni: gizli input, "Tüm Fiyat Değişimlerini Gör" gürültüsü hariç. */
+function extractPriceText($: CheerioAPI): string | null {
+  const el =
+    $('h3.classifiedPriceValue').first().length
+      ? $('h3.classifiedPriceValue').first()
+      : $('.classifiedPrice h3:not(.price-all)').first().length
+        ? $('.classifiedPrice h3:not(.price-all)').first()
+        : $('.classifiedInfo h3:not(.price-all)').first();
+  if (!el.length) return null;
+  const copy = el.clone();
+  copy.find('input, script, style, .price-all').remove();
+  const t = clean(copy.text());
+  return t || null;
+}
+
 export function parseListingPage(html: string, ctx: ParseContext): Listing {
   const $ = load(html);
   const warnings: string[] = [];
@@ -248,10 +388,10 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
 
   const title = clean($('.classifiedDetailTitle h1').first().text() || $('h1').first().text());
 
-  const priceText = clean($('.classifiedInfo h3').first().text()) || null;
+  const priceText = extractPriceText($);
   const price = parseTrNumber(priceText);
   const year = parseTrNumber(attr('yil'));
-  const km = parseTrNumber(attr('km'));
+  const km = parseTrNumber(attr('km') ?? attr('kilometre'));
   if (price === null) warnings.push('fiyat okunamadı');
   if (year === null) warnings.push('yıl okunamadı');
   if (km === null) warnings.push('km okunamadı');
@@ -261,10 +401,14 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
     .map((a) => clean($(a).text()))
     .filter(Boolean);
 
+  if (locs.length === 0) warnings.push('konum okunamadı (detay sayfası konum seçicisi doğrulanmadı)');
+
   const volumeCc = parseRangeOrNumber(attr('motor hacmi'));
   const powerHp = parseRangeOrNumber(attr('motor gucu'));
 
-  let description: string | null = clean($('#classifiedDescription').text()) || null;
+  const descEl = $('#classifiedDescription').first().clone();
+  descEl.find('script, style, input, [hidden], [style*="display:none"], [style*="display: none"]').remove();
+  let description: string | null = clean(descEl.text()) || null;
   if (description) {
     description = description.replace(PHONE_RE, '[telefon]').slice(0, DESCRIPTION_MAX);
   }
@@ -294,7 +438,7 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
     district: locs[1] ?? null,
     listingDate: parseTrDate(attr('ilan tarihi')),
     transmission: mapTransmission(attr('vites')),
-    fuel: mapFuel(attr('yakit')),
+    fuel: mapFuel(attr('yakit / motor tipi') ?? attr('yakit')),
     source: 'listing',
     capturedAt: ctx.capturedAt,
     engine: volumeCc !== null || powerHp !== null ? { volumeCc, powerHp } : null,
@@ -303,10 +447,10 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
     vehicleCondition: attr('arac durumu'),
     sellerType: mapSellerType(attr('kimden')),
     exchange: parseYesNo(attr('takas')),
-    warranty: parseYesNo(attr('garanti')),
+    warranty: parseYesNo(attr('servis garantisi') ?? attr('garanti')),
     heavyDamage: parseYesNo(attr('agir hasar kayitli')),
     tramerAmount,
-    damage: extractDamage($),
+    damage: extractDamageArea($, warnings) ?? extractDamage($),
     description,
     attributes,
     warnings,
