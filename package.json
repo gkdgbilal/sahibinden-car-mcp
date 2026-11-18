@@ -1,6 +1,18 @@
 {
   "name": "sahibinden-car-mcp",
   "version": "0.1.0",
+  "description": "Local MCP server that lets Claude search, inspect and compare sahibinden.com car listings from pages you saved yourself (no scraping, no network requests).",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "sahibinden",
+    "cars",
+    "listings",
+    "turkey",
+    "local-first"
+  ],
+  "author": "Bilal Gökdağ",
   "type": "module",
   "license": "MIT",
   "engines": {
