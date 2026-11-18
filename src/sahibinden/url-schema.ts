@@ -89,7 +89,8 @@ export const ENGINE_POWER_IDS: Record<EnginePower, string> = {
 
 export const ENGINE_VOLUME_IDS: Record<EngineVolume, string> = {
   'upto-1300': '51977', '1301-1600': '1118042', '1601-1800': '51979', '1801-2000': '51980', '2001-2500': '51981',
-  // 2501-5500 aralıklarının kimlikleri henüz alınmadı (sitede var; eklenmedi, uydurulmadı).
+  '2501-3000': '51982', '3001-3500': '51983', '3501-4000': '51984', '4001-4500': '51985',
+  '4501-5000': '74366', '5001-5500': '74367',
   '5501-6000': '74368', '6001-up': '74369', // "6001 cc ve üzeri"
 };
 

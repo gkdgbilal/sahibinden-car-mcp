@@ -110,6 +110,17 @@ describe('yerel filtre: pozitif + negatif', () => {
     expect(ENGINE_POWER_IDS['601-up']).toBe('74365');
     expect(buildSearchUrls(q({ enginePower: '601-up' }))[0]!.url).toContain('a2320=74365');
   });
+  it('motor hacmi: 2501-5500 aralıkları sınırlarıyla', () => {
+    const cc = (volumeCc: number) => mk({ engine: { volumeCc, powerHp: 105 } });
+    const bands = [['2501-3000', 2500, 3000], ['3001-3500', 3000, 3500], ['3501-4000', 3500, 4000], ['4001-4500', 4000, 4500], ['4501-5000', 4500, 5000], ['5001-5500', 5000, 5500]] as const;
+    for (const [engineVolume, lo, hi] of bands) {
+      expect(ok(cc(lo), { engineVolume })).toBe(false);
+      expect(ok(cc(lo + 1), { engineVolume })).toBe(true);
+      expect(ok(cc(hi), { engineVolume })).toBe(true);
+      expect(ok(cc(hi + 1), { engineVolume })).toBe(false);
+    }
+    expect(ok(cc(2500), { engineVolume: '2001-2500' })).toBe(true);
+  });
   it('motor hacmi: yeni aralıklar ve "6001 cc ve üzeri" açık uçlu', () => {
     const cc = (volumeCc: number) => mk({ engine: { volumeCc, powerHp: 105 } });
     expect(ok(cc(5800), { engineVolume: '5501-6000' })).toBe(true);

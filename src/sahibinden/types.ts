@@ -21,7 +21,8 @@ export const EnginePowerSchema = z.enum([
   '526-550', '551-575', '576-600', '601-up',
 ]);
 export const EngineVolumeSchema = z.enum([
-  'upto-1300', '1301-1600', '1601-1800', '1801-2000', '2001-2500', '5501-6000', '6001-up',
+  'upto-1300', '1301-1600', '1601-1800', '1801-2000', '2001-2500', '2501-3000', '3001-3500', '3501-4000',
+  '4001-4500', '4501-5000', '5001-5500', '5501-6000', '6001-up',
 ]);
 export const DrivetrainSchema = z.enum(['fwd', 'rwd', '4wd', 'awd']);
 export const ListedWithinSchema = z.enum(['1day', '3days', '7days', '15days', '30days']);

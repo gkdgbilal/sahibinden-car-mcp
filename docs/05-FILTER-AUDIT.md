@@ -41,7 +41,6 @@ Her `searchCarsInput` alanı için iki soru: (1) yerel mağazadaki ilanlara uygu
 
 ## Kalan sınırlar
 
-- Motor hacmi 2501-5500 cc aralıklarının sahibinden kimlikleri alınmadı; yalnızca 5501-6000 ve 6001+ var (bu aralıklar için filtre sunulmuyor).
 - Hibrit türleri (Plug-in, Hafif Hibrit) ayrı seçilemez: `fuel: hybrid` yalnızca Benzin(Hibrit) (a17=1312756) olur; diğer kimlikler URL `note`unda listelenir. Yerel `hybrid` hepsini kapsar.
 - Yarı otomatik vites URL'ye yansımaz (kimlik bilinmiyor); yerelde uygulanır.
 - 55 ve 34 dışındaki il plaka kodları URL'de doğrulanmadı (yerel şehir filtresi etkilenmez).

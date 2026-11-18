@@ -34,7 +34,7 @@ Kaynak: kullanıcının kendi Chrome oturumunda gerçek sahibinden sayfasından,
 | `a3` | Renk | 655354 Bej, 33611 Beyaz, 33617 Bordo, 658878 Füme, 33612 Gri, 40948 Gümüş Gri, 33621 Kahverengi, 33613 Kırmızı, 33615 Lacivert, 33610 Mavi, 33624 Mor, 40167 Pembe, 33614 Sarı, 33616 Siyah, 675106 Şampanya, 44926 Turkuaz, 40148 Turuncu, 33618 Yeşil |
 | `a113987` | Araç durumu | 1252385 İkinci El, 1252386 Yurtdışından İthal Sıfır, 1252387 Sıfır |
 | `a2320` | Motor gücü aralığı (`a17` yakıt kimlikleriyle karıştırılmamalı) | 1096156 ≤50 hp, 1096158 51-75, 74344 76-100, 74345 101-125, 74346 126-150, 74347 151-175, 74348 176-200, 74349 201-225, 74350 226-250, 74351 251-275, 74352 276-300, 74353 301-325, 74354 326-350, 74355 351-375, 74356 376-400, 74357 401-425, 74358 426-450, 74359 451-475, 74360 476-500, 74361 501-525, 74362 526-550, 74363 551-575, 74364 576-600, 74365 601 hp ve üzeri (araç anahtarı `601-up`, açık uçlu) |
-| `a1864` | Motor hacmi aralığı | 51977 ≤1300 cc, 1118042 1301-1600, 51979 1601-1800, 51980 1801-2000, 51981 2001-2500, 74368 5501-6000, 74369 6001 cc ve üzeri (`6001-up`, açık uçlu). **2501-5500 aralıklarının kimlikleri henüz alınmadı**, eklenmedi |
+| `a1864` | Motor hacmi aralığı | 51977 ≤1300 cc, 1118042 1301-1600, 51979 1601-1800, 51980 1801-2000, 51981 2001-2500, 51982 2501-3000, 51983 3001-3500, 51984 3501-4000, 51985 4001-4500, 74366 4501-5000, 74367 5001-5500, 74368 5501-6000, 74369 6001 cc ve üzeri (`6001-up`, açık uçlu) |
 | `a9213` | Çekiş | 136269 Önden, 136270 Arkadan, 136271 4WD, 136272 AWD |
 | `a116445` | Ağır Hasar Kayıtlı | 1263353 Evet, 1263354 Hayır (araç: `noHeavyDamage` -> 1263354) |
 | `a4054` | Servis Garantisi | 72906 Evet, 72907 Hayır (araç: `warranty`) |

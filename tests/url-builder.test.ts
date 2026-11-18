@@ -69,6 +69,8 @@ describe('buildSearchUrls', () => {
     expect(params({ enginePower: '226-250' }).a2320).toBe('74350');
     expect(params({ enginePower: '576-600' }).a2320).toBe('74364');
     expect(params({ enginePower: '601-up' }).a2320).toBe('74365');
+    const vol = { '2501-3000': '51982', '3001-3500': '51983', '3501-4000': '51984', '4001-4500': '51985', '4501-5000': '74366', '5001-5500': '74367' };
+    for (const [engineVolume, id] of Object.entries(vol)) expect(params({ engineVolume }).a1864).toBe(id);
     expect(params({ engineVolume: '5501-6000' }).a1864).toBe('74368');
     expect(params({ engineVolume: '6001-up' }).a1864).toBe('74369');
     expect(params({ engineVolume: 'upto-1300' }).a1864).toBe('51977');
