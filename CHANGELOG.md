@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Listing fields `tramerRecords` (`{date?, amount?, note?}`), `tramerStatus` (`none | amount | mentioned | unknown`); `tramerAmount` is now the sum of the record amounts. "tramer yok / kaydı yok / tramersiz" is reported as `none`. Description-derived values keep the warning "açıklamadan çıkarıldı, satıcı beyanı, doğrulanmadı".
+- Re-import after an upgrade: duplicate detection is now content hash + `PARSER_VERSION` (2). A file whose stored record has an older (or no) parser version is re-parsed and the listing updated in place (price history kept); `duplicate` only when hash and version match. Optional `force: boolean` on `import_listing_html` re-parses regardless.
 - `compare_cars` rows now include `tramerStatus` and `notes[]`; a full listing with an unknown or amount-less tramer gets "tramer tutarı açıklamada belirsiz; resmi tramer sorgusu yapın". Comparison statistics are unchanged.
 
 ## [0.1.1] - 2026-11-18

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MAX_FILE_BYTES, MAX_HTML_ARG } from '../config.js';
+import { MAX_FILE_BYTES, MAX_HTML_ARG, PARSER_VERSION } from '../config.js';
 import { appliedFilterNames, evaluateQuery, sortListings } from '../sahibinden/filter.js';
 import { detectPageType, parseListingPage, parseSearchPage } from '../sahibinden/parser.js';
 import type { Listing, ListingSummary, SearchQuery } from '../sahibinden/types.js';
@@ -92,14 +92,14 @@ export class ImportProvider implements Provider {
       if (Buffer.byteLength(input.html, 'utf8') > MAX_HTML_ARG) {
         report.skipped.push({ file: null, reason: 'too-large' });
       } else {
-        this.processHtml(input.html, null, 'inline-html', input.sourceUrl, report, undefined, input.cityHint);
+        this.processHtml(input.html, null, 'inline-html', input.sourceUrl, report, undefined, input.cityHint, input.force);
       }
     } else {
       fs.mkdirSync(this.inboxDir, { recursive: true });
       const files = this.collectFiles(input.path, report);
       // sourceUrl yalnızca tek dosya için anlamlı.
       const sourceUrl = files.length === 1 ? input.sourceUrl : undefined;
-      for (const file of files) this.processFile(file, sourceUrl, report, input.cityHint);
+      for (const file of files) this.processFile(file, sourceUrl, report, input.cityHint, input.force);
     }
 
     if (report.imported.length > 0) this.store.save();
@@ -152,14 +152,14 @@ export class ImportProvider implements Provider {
     }
   }
 
-  private processFile(file: string, sourceUrl: string | undefined, report: IngestReport, cityHint?: string): void {
+  private processFile(file: string, sourceUrl: string | undefined, report: IngestReport, cityHint?: string, force?: boolean): void {
     const size = fs.statSync(file).size;
     if (size > MAX_FILE_BYTES) {
       report.skipped.push({ file, reason: 'too-large' });
       return;
     }
     const buf = fs.readFileSync(file);
-    this.processHtml(buf.toString('utf8'), file, file, sourceUrl, report, sha256(buf), cityHint);
+    this.processHtml(buf.toString('utf8'), file, file, sourceUrl, report, sha256(buf), cityHint, force);
   }
 
   private processHtml(
@@ -170,8 +170,11 @@ export class ImportProvider implements Provider {
     report: IngestReport,
     sha: string = sha256(html),
     cityHint?: string,
+    force?: boolean,
   ): void {
-    if (this.store.hasFile(sha)) {
+    // Aynı içerik: yalnızca güncel parser sürümüyle okunmuşsa atlanır; eski sürümlüyse (veya force) yeniden parse edilir.
+    const seen = this.store.getFile(sha);
+    if (seen && !force && (seen.parserVersion ?? 1) >= PARSER_VERSION) {
       report.skipped.push({ file, reason: 'duplicate' });
       return;
     }
@@ -208,6 +211,6 @@ export class ImportProvider implements Provider {
       report.skipped.push({ file, reason: `parse-error: ${err instanceof Error ? err.message : String(err)}` });
       return;
     }
-    this.store.markFile(sha, markName, this.now());
+    this.store.markFile(sha, markName, this.now(), PARSER_VERSION);
   }
 }

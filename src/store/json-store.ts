@@ -14,10 +14,17 @@ export interface StoredEntry {
   priceHistory: PricePoint[];
 }
 
+export interface ImportedFile {
+  file: string;
+  importedAt: string;
+  /** Dosyayı okuyan parser sürümü; yoksa eski kayıt (1) sayılır. */
+  parserVersion?: number;
+}
+
 interface StoreData {
   version: 1;
   listings: Record<string, StoredEntry>;
-  importedFiles: Record<string, { file: string; importedAt: string }>;
+  importedFiles: Record<string, ImportedFile>;
 }
 
 const empty = (): StoreData => ({ version: 1, listings: {}, importedFiles: {} });
@@ -106,8 +113,17 @@ export class JsonStore {
     return sha in this.data!.importedFiles;
   }
 
-  markFile(sha: string, file: string, at: string): void {
+  getFile(sha: string): ImportedFile | undefined {
     this.load();
-    this.data!.importedFiles[sha] = { file, importedAt: at };
+    return this.data!.importedFiles[sha];
+  }
+
+  markFile(sha: string, file: string, at: string, parserVersion?: number): void {
+    this.load();
+    this.data!.importedFiles[sha] = {
+      file,
+      importedAt: at,
+      ...(parserVersion !== undefined ? { parserVersion } : {}),
+    };
   }
 }

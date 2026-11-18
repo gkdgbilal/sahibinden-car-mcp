@@ -6,13 +6,15 @@ export const IMPORT_LISTING_HTML_DESCRIPTION =
   'Kullanıcının tarayıcıdan kaydettiği sahibinden arama/ilan sayfalarını (.html) içe aktarır. ' +
   'path verilmezse inbox klasöründeki yeni dosyaları işler; path yalnızca inbox içinde olabilir (göreli yol inbox\'a göre çözülür). ' +
   'Büyük HTML\'i html argümanına koyma; path kullan. ' +
-  'Şehir filtreli arama sayfası kaydedildiyse (konum hücresi "İlçe Mahalle") ve sayfadan şehir anlaşılamıyorsa cityHint ver.';
+  'Şehir filtreli arama sayfası kaydedildiyse (konum hücresi "İlçe Mahalle") ve sayfadan şehir anlaşılamıyorsa cityHint ver. ' +
+  'Aynı dosya daha önce okunduysa ve parser sürümü aynıysa atlanır (duplicate); eski sürümle okunmuşsa otomatik yeniden okunur, force:true her durumda yeniden okutur.';
 
 export const importListingHtmlInput = z.object({
   path: z.string().max(1000).optional(),
   html: z.string().max(MAX_HTML_ARG).optional(),
   sourceUrl: z.url().optional(),
   cityHint: z.string().max(40).optional(),
+  force: z.boolean().optional(),
 });
 export const importListingHtmlOutput = z.object({
   imported: z.array(

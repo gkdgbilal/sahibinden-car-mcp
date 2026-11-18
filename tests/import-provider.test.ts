@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PARSER_VERSION } from '../src/config.js';
 import { ImportProvider } from '../src/providers/import-provider.js';
 import { parseRef } from '../src/providers/provider.js';
 import { SearchQuerySchema } from '../src/sahibinden/types.js';
@@ -100,6 +102,70 @@ describe('ImportProvider.ingest', () => {
   it('boyut sınırı', async () => {
     const big = 'a'.repeat(5_000_001);
     expect((await provider.ingest({ html: big })).skipped).toEqual([{ file: null, reason: 'too-large' }]);
+  });
+});
+
+describe('ImportProvider: parser sürümü ve force', () => {
+  const html = () => fs.readFileSync(path.join(fxDir, 'listing.synthetic.html'), 'utf8');
+  const sha = (h: string) => createHash('sha256').update(h).digest('hex');
+  const ID = '1000000001';
+  let store: JsonStore;
+  let p: ImportProvider;
+  beforeEach(() => {
+    store = new JsonStore(path.join(dir, 'store2.json'));
+    p = new ImportProvider({ store, inboxDir: inbox, now: () => NOW });
+  });
+  /** Eski parser'la okunmuş kaydı taklit eder: bayat alanlar + sürümsüz dosya kaydı + eski fiyat noktası. */
+  const makeStale = () => {
+    const e = store.get(ID)!;
+    e.listing = { ...e.listing!, tramerStatus: 'unknown', tramerRecords: [], tramerAmount: null };
+    e.priceHistory.unshift({ price: 1, currency: 'TL', capturedAt: '2026-01-01T00:00:00.000Z' });
+    store.markFile(sha(html()), 'inline-html', NOW);
+  };
+
+  it('yeni içe aktarma güncel PARSER_VERSION ile işaretlenir; aynı sürüm duplicate kalır', async () => {
+    const h = html();
+    expect((await p.ingest({ html: h })).imported).toHaveLength(1);
+    expect(store.getFile(sha(h))?.parserVersion).toBe(PARSER_VERSION);
+    expect((await p.ingest({ html: h })).skipped).toEqual([{ file: null, reason: 'duplicate' }]);
+  });
+
+  it('eski/sürümsüz kayıtlı dosya yeniden parse edilir, kayıt güncellenir, fiyat geçmişi korunur', async () => {
+    const h = html();
+    await p.ingest({ html: h });
+    makeStale();
+    expect(store.get(ID)!.listing!.tramerStatus).toBe('unknown');
+    const r = await p.ingest({ html: h });
+    expect(r.skipped).toEqual([]);
+    expect(r.imported[0]).toMatchObject({ pageType: 'listing', ids: [ID] });
+    const e = store.get(ID)!;
+    expect(e.listing!.tramerStatus).toBe('amount');
+    expect(e.listing!.tramerAmount).toBe(12500);
+    expect(e.priceHistory[0]).toMatchObject({ price: 1 });
+    expect(e.priceHistory).toHaveLength(2);
+    expect(store.size()).toBe(1);
+    expect(store.getFile(sha(h))?.parserVersion).toBe(PARSER_VERSION);
+    expect((await p.ingest({ html: h })).skipped).toEqual([{ file: null, reason: 'duplicate' }]);
+  });
+
+  it('force: aynı hash ve sürümde de yeniden parse eder', async () => {
+    const h = html();
+    await p.ingest({ html: h });
+    const e = store.get(ID)!;
+    e.listing = { ...e.listing!, tramerStatus: 'unknown' };
+    expect((await p.ingest({ html: h })).imported).toEqual([]);
+    expect(store.get(ID)!.listing!.tramerStatus).toBe('unknown');
+    expect((await p.ingest({ html: h, force: true })).imported).toHaveLength(1);
+    expect(store.get(ID)!.listing!.tramerStatus).toBe('amount');
+  });
+
+  it('inbox dosyası da sürümle yeniden okunur', async () => {
+    copy('listing.synthetic.html');
+    await p.ingest({});
+    const buf = fs.readFileSync(path.join(inbox, 'listing.synthetic.html'));
+    store.markFile(createHash('sha256').update(buf).digest('hex'), 'x', NOW, 1);
+    expect((await p.ingest({})).imported).toHaveLength(1);
+    expect((await p.ingest({})).imported).toEqual([]);
   });
 });
 
