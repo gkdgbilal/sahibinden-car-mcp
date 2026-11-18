@@ -10,6 +10,9 @@ const BRAND_ALIASES: Record<string, string> = {
   'mercedes benz': 'mercedes-benz',
   'mercedes-benz': 'mercedes-benz',
   benz: 'mercedes-benz',
+  'land rover': 'land-rover',
+  landrover: 'land-rover',
+  'land-rover': 'land-rover',
 };
 
 /** Marka adını sitedeki kanonik biçime çevirir (katlanmış, alias çözülmüş); bilinmeyen marka olduğu gibi döner. */
@@ -41,3 +44,32 @@ export function brandModelPath(brand: string, model: string): string | undefined
 
 /** Yerel mağaza eşleşmesi için boşluk/tire farklarını yok sayar: "C200d" ≈ "C 200 d". */
 export const squash = (s: string) => foldTr(s).replace(/[\s-]+/g, '');
+
+/**
+ * SUV modelleri sitede "Arazi, SUV & Pickup" kategorisindedir (/arazi-suv-pickup-{marka}-{model}), otomobil
+ * kategorisinde değildir; bu kategorinin filtre parametre kimlikleri de farklıdır (bkz. SUV_PARAMS).
+ * Canlı sitede doğrulanan (2026-11-19): Land Rover model yolları.
+ */
+const LAND_ROVER_MODELS = [
+  'range-rover-evoque', 'range-rover-sport', 'range-rover-velar', 'range-rover',
+  'discovery-sport', 'discovery', 'defender', 'freelander',
+];
+
+export interface SuvTarget { path: string }
+
+/** Marka+model doğrulanmış SUV kategorisindeyse yolunu döner (başında "/" yok); aksi halde undefined (otomobil kuralı). */
+export function suvPath(brand: string | undefined, model: string | null): SuvTarget | undefined {
+  let b = brand ? canonicalBrand(brand) : '';
+  let m = model ? foldTr(model).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : '';
+  if (b === 'range-rover') { b = 'land-rover'; m = m.startsWith('range-rover') ? m : `range-rover${m ? `-${m}` : ''}`; }
+  if (!b && m) {
+    const hit = LAND_ROVER_MODELS.find((x) => m === x || m.startsWith(`${x}-`));
+    if (hit) b = 'land-rover';
+  }
+  if (b !== 'land-rover') return undefined;
+  if (!m) return { path: 'arazi-suv-pickup-land-rover' };
+  // "Range Rover Discovery" gibi karışık yazım: Discovery'yi Land Rover modeli olarak al.
+  const cleaned = m.replace(/^range-rover-(discovery|defender|freelander)/, '$1');
+  const hit = LAND_ROVER_MODELS.find((x) => cleaned === x || cleaned.startsWith(`${x}-`));
+  return hit ? { path: `arazi-suv-pickup-land-rover-${hit}` } : { path: 'arazi-suv-pickup-land-rover' };
+}

@@ -163,3 +163,29 @@ describe('Mercedes yolları (canlı sitede doğrulandı 2026-11-19)', () => {
     expect(path({ brand: 'Opel', models: ['Astra'] })).toBe('/opel-astra');
   });
 });
+
+describe('SUV kategorisi: Land Rover (canlı sitede doğrulandı 2026-11-19)', () => {
+  const u = (o: object) => new URL(first(o).url);
+  it('Discovery -> /arazi-suv-pickup-land-rover-discovery, SUV parametre kimlikleriyle', () => {
+    const url = u({ brand: 'Land Rover', models: ['Discovery'], yearMin: 2015, yearMax: 2015, kmMax: 200000, transmission: 'automatic', fuel: 'diesel' });
+    expect(url.pathname).toBe('/arazi-suv-pickup-land-rover-discovery');
+    const p = url.searchParams;
+    expect(p.get('a277_min')).toBe('2015');
+    expect(p.get('a277_max')).toBe('2015');
+    expect(p.get('a276_max')).toBe('200000');
+    expect(p.get('a279')).toBe('33625');
+    expect(p.get('a287')).toBe('400');
+    for (const k of ['a5_min', 'a5_max', 'a4_max', 'a6', 'a17']) expect(p.has(k)).toBe(false);
+  });
+  it('Range Rover / marka yok / karışık yazım', () => {
+    expect(u({ brand: 'Range Rover' }).pathname).toBe('/arazi-suv-pickup-land-rover-range-rover');
+    expect(u({ models: ['Range Rover Sport'] }).pathname).toBe('/arazi-suv-pickup-land-rover-range-rover-sport');
+    expect(u({ brand: 'Land Rover', models: ['Range Rover Discovery'] }).pathname).toBe('/arazi-suv-pickup-land-rover-discovery');
+    expect(u({ brand: 'Land Rover' }).pathname).toBe('/arazi-suv-pickup-land-rover');
+  });
+  it('doğrulanmamış filtreler eklenmez ve not düşülür; otomobil değişmez', () => {
+    const r = first({ brand: 'Land Rover', models: ['Discovery'], engineVolume: '2501-3000', bodyType: 'sedan' });
+    expect(r.note).toContain('SUV kategorisinde');
+    expect(new URL(first({ brand: 'Opel', models: ['Astra'], yearMin: 2012 }).url).searchParams.get('a5_min')).toBe('2012');
+  });
+});

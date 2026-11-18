@@ -1,10 +1,11 @@
-import { brandModelPath, canonicalBrand } from './brands.js';
+import { brandModelPath, canonicalBrand, suvPath } from './brands.js';
 import { foldTr } from './normalize.js';
 import type { SearchQuery } from './types.js';
 import {
   BASE, BODY_TYPE_IDS, COLOR_IDS, DRIVETRAIN_IDS, ENGINE_POWER_IDS, ENGINE_VOLUME_IDS, FUEL_IDS,
   HEAVY_DAMAGE_IDS, HYBRID_VARIANT_IDS, WARRANTY_IDS, LISTED_WITHIN_VALUES, PAGE_SIZE, PARAMS, PRICE_CURRENCY_IDS, SELLER_TYPE_IDS,
   SORTING_VALUES, TRANSMISSION_IDS, VEHICLE_CONDITION_IDS, resolveCity,
+  SUV_COLOR_IDS, SUV_CONDITION_IDS, SUV_DRIVETRAIN_IDS, SUV_FUEL_IDS, SUV_HEAVY_DAMAGE_IDS, SUV_PARAMS, SUV_SELLER_IDS, SUV_TRANSMISSION_IDS,
 } from './url-schema.js';
 
 export interface SearchUrl {
@@ -30,71 +31,93 @@ export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
   const brandSlug = q.brand ? canonicalBrand(q.brand) : '';
   const models = q.models && q.models.length > 0 ? q.models : [null];
 
-  const notes: string[] = [];
-  const params = new URLSearchParams();
-  const set = (p: { key: string }, v: string | number | undefined) => {
-    if (v !== undefined) params.set(p.key, String(v));
-  };
+  const build = (suv: boolean) => {
+    const notes: string[] = [];
+    const params = new URLSearchParams();
+    const set = (p: { key: string }, v: string | number | undefined) => {
+      if (v !== undefined) params.set(p.key, String(v));
+    };
 
-  set(PARAMS.priceMin, q.priceMin);
-  set(PARAMS.priceMax, q.priceMax);
-  if (q.priceCurrency) set(PARAMS.priceCurrency, PRICE_CURRENCY_IDS[q.priceCurrency]); // TL: parametre yok
-  set(PARAMS.yearMin, q.yearMin);
-  set(PARAMS.yearMax, q.yearMax);
-  set(PARAMS.kmMin, q.kmMin);
-  set(PARAMS.kmMax, q.kmMax);
+    set(PARAMS.priceMin, q.priceMin);
+    set(PARAMS.priceMax, q.priceMax);
+    if (q.priceCurrency) set(PARAMS.priceCurrency, PRICE_CURRENCY_IDS[q.priceCurrency]); // TL: parametre yok
+    set(suv ? { key: SUV_PARAMS.yearMin } : PARAMS.yearMin, q.yearMin);
+    set(suv ? { key: SUV_PARAMS.yearMax } : PARAMS.yearMax, q.yearMax);
+    set(suv ? { key: SUV_PARAMS.kmMin } : PARAMS.kmMin, q.kmMin);
+    set(suv ? { key: SUV_PARAMS.kmMax } : PARAMS.kmMax, q.kmMax);
 
-  if (q.city) {
-    const c = resolveCity(q.city);
-    if (!c) {
-      notes.push(`Şehir "${q.city}" tanınmadı; şehir filtresi URL'ye eklenmedi, sahibinden panelinden seçin.`);
-    } else {
-      set(PARAMS.city, c.code);
-      if (!c.verified) {
-        notes.push(
-          `Şehir kodu (${c.name} = ${c.code}) doğrulanmadı (plaka kodu varsayımı); yalnızca Samsun (55) ve İstanbul (34) doğrulandı. ` +
-            'URL beklenen şehri göstermezse şehri panelden seçin.',
-        );
+    if (q.city) {
+      const c = resolveCity(q.city);
+      if (!c) {
+        notes.push(`Şehir "${q.city}" tanınmadı; şehir filtresi URL'ye eklenmedi, sahibinden panelinden seçin.`);
+      } else {
+        set(PARAMS.city, c.code);
+        if (!c.verified) {
+          notes.push(
+            `Şehir kodu (${c.name} = ${c.code}) doğrulanmadı (plaka kodu varsayımı); yalnızca Samsun (55) ve İstanbul (34) doğrulandı. ` +
+              'URL beklenen şehri göstermezse şehri panelden seçin.',
+          );
+        }
       }
     }
-  }
 
-  if (q.transmission) {
-    const id = TRANSMISSION_IDS[q.transmission];
-    if (id) set(PARAMS.transmission, id);
-    else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) için kimlik bilinmiyor; filtreyi sahibinden panelinden seçin.`);
-  }
-  if (q.fuel) {
-    set(PARAMS.fuel, FUEL_IDS[q.fuel]);
-    if (q.fuel === 'hybrid') {
-      const variants = Object.entries(HYBRID_VARIANT_IDS).map(([k, v]) => `${k}=${v}`).join(', ');
-      notes.push(`Hibrit için Benzin(Hibrit) (a17=1312756) kullanıldı; diğer türler: ${variants}.`);
+    if (q.transmission) {
+      const id = (suv ? SUV_TRANSMISSION_IDS : TRANSMISSION_IDS)[q.transmission];
+      if (id) set(suv ? { key: SUV_PARAMS.transmission } : PARAMS.transmission, id);
+      else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) için kimlik bilinmiyor; filtreyi sahibinden panelinden seçin.`);
     }
-  }
-  if (q.sellerType) set(PARAMS.sellerType, SELLER_TYPE_IDS[q.sellerType]);
-  if (q.bodyType) set(PARAMS.bodyType, BODY_TYPE_IDS[q.bodyType]);
-  if (q.color) set(PARAMS.color, COLOR_IDS[q.color]);
-  if (q.vehicleCondition) set(PARAMS.vehicleCondition, VEHICLE_CONDITION_IDS[q.vehicleCondition]);
-  if (q.enginePower) set(PARAMS.enginePower, ENGINE_POWER_IDS[q.enginePower]);
-  if (q.engineVolume) set(PARAMS.engineVolume, ENGINE_VOLUME_IDS[q.engineVolume]);
-  if (q.drivetrain) set(PARAMS.drivetrain, DRIVETRAIN_IDS[q.drivetrain]);
-  if (q.exchange !== undefined) set(PARAMS.exchange, q.exchange ? 'yes' : 'no');
-  if (q.listedWithin) set(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
-  if (q.unpaintedOnly) set(PARAMS.unpainted, 'true');
-  if (q.noReplacedParts) set(PARAMS.noReplacedParts, 'true');
-  if (q.noHeavyDamage) set(PARAMS.heavyDamage, HEAVY_DAMAGE_IDS.no);
-  if (q.warranty !== undefined) set(PARAMS.warranty, q.warranty ? WARRANTY_IDS.yes : WARRANTY_IDS.no);
-  set(PARAMS.sorting, SORTING_VALUES[q.sort]);
-  if (q.page && q.page > 1) set(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
+    if (q.fuel) {
+      set(suv ? { key: SUV_PARAMS.fuel } : PARAMS.fuel, (suv ? SUV_FUEL_IDS : FUEL_IDS)[q.fuel]);
+      if (q.fuel === 'hybrid' && !suv) {
+        const variants = Object.entries(HYBRID_VARIANT_IDS).map(([k, v]) => `${k}=${v}`).join(', ');
+        notes.push(`Hibrit için Benzin(Hibrit) (a17=1312756) kullanıldı; diğer türler: ${variants}.`);
+      }
+    }
+    if (suv) {
+      if (q.sellerType) set({ key: SUV_PARAMS.sellerType }, SUV_SELLER_IDS[q.sellerType]);
+      if (q.color) set({ key: SUV_PARAMS.color }, SUV_COLOR_IDS[q.color]);
+      if (q.vehicleCondition) set({ key: SUV_PARAMS.vehicleCondition }, SUV_CONDITION_IDS[q.vehicleCondition]);
+      if (q.drivetrain) {
+        const id = SUV_DRIVETRAIN_IDS[q.drivetrain];
+        if (id) set({ key: SUV_PARAMS.drivetrain }, id);
+        else notes.push(`Çekiş (${q.drivetrain}) SUV kategorisi için eklenmedi; sahibinden panelinden seçin.`);
+      }
+      const skipped = [q.bodyType && 'kasa', q.enginePower && 'motor gücü', q.engineVolume && 'motor hacmi', q.warranty !== undefined && 'garanti'].filter(Boolean);
+      if (skipped.length) notes.push(`SUV kategorisinde doğrulanmadığı için URL'ye eklenmeyen filtreler: ${skipped.join(', ')} (yerel filtre yine uygulanır).`);
+    } else {
+      if (q.sellerType) set(PARAMS.sellerType, SELLER_TYPE_IDS[q.sellerType]);
+      if (q.bodyType) set(PARAMS.bodyType, BODY_TYPE_IDS[q.bodyType]);
+      if (q.color) set(PARAMS.color, COLOR_IDS[q.color]);
+      if (q.vehicleCondition) set(PARAMS.vehicleCondition, VEHICLE_CONDITION_IDS[q.vehicleCondition]);
+      if (q.enginePower) set(PARAMS.enginePower, ENGINE_POWER_IDS[q.enginePower]);
+      if (q.engineVolume) set(PARAMS.engineVolume, ENGINE_VOLUME_IDS[q.engineVolume]);
+      if (q.drivetrain) set(PARAMS.drivetrain, DRIVETRAIN_IDS[q.drivetrain]);
+    }
+    if (q.exchange !== undefined) set(PARAMS.exchange, q.exchange ? 'yes' : 'no');
+    if (q.listedWithin) set(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
+    if (q.unpaintedOnly) set(PARAMS.unpainted, 'true');
+    if (q.noReplacedParts) set(PARAMS.noReplacedParts, 'true');
+    if (q.noHeavyDamage) set(suv ? { key: SUV_PARAMS.heavyDamage } : PARAMS.heavyDamage, suv ? SUV_HEAVY_DAMAGE_IDS.no : HEAVY_DAMAGE_IDS.no);
+    if (q.warranty !== undefined && !suv) set(PARAMS.warranty, q.warranty ? WARRANTY_IDS.yes : WARRANTY_IDS.no);
+    set(PARAMS.sorting, SORTING_VALUES[q.sort]);
+    if (q.page && q.page > 1) set(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
 
-  const query = params.toString();
+    const query = params.toString();
+    return { query, notes };
+  };
+  const builds = { oto: build(false), suv: build(true) };
 
   const byUrl = new Map<string, SearchUrl>();
   for (const model of models) {
     const extra: string[] = [];
+    const suvTarget = suvPath(q.brand, model);
+    const { query, notes } = suvTarget ? builds.suv : builds.oto;
     let path: string;
     let label: string;
-    if (model === null) {
+    if (suvTarget) {
+      path = `/${suvTarget.path}`;
+      label = `${q.brand ?? 'Land Rover'}${model ? ` ${model}` : ''}`;
+    } else if (model === null) {
       path = brandSlug ? `/${brandSlug}` : '/otomobil';
       label = q.brand ?? 'Otomobil';
     } else {

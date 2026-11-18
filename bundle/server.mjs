@@ -66032,7 +66032,7 @@ function loadBrowserConfig(env, homeDir2) {
 }
 
 // src/config.ts
-var VERSION = "0.2.0";
+var VERSION = "0.2.1";
 var PARSER_VERSION = 3;
 var homeDir = process.env.SAHIBINDEN_MCP_HOME ?? path2.join(os.homedir(), ".sahibinden-car-mcp");
 var inboxDir = path2.join(homeDir, "inbox");
@@ -66998,6 +66998,44 @@ function citySlug(c) {
   return foldTr(c.name).replace(/[^a-z0-9]+/g, "-");
 }
 var LISTING_URL = (id) => `${BASE}/ilan/${id}/detay`;
+var SUV_PARAMS = {
+  yearMin: "a277_min",
+  yearMax: "a277_max",
+  kmMin: "a276_min",
+  kmMax: "a276_max",
+  transmission: "a279",
+  fuel: "a287",
+  sellerType: "a448",
+  color: "a275",
+  vehicleCondition: "a113988",
+  drivetrain: "a95938",
+  heavyDamage: "a116446"
+};
+var SUV_TRANSMISSION_IDS = { manual: "33626", automatic: "33625" };
+var SUV_FUEL_IDS = { gasoline: "398", diesel: "400", lpg: "50911", electric: "1234143", hybrid: "1312760" };
+var SUV_SELLER_IDS = { owner: "33631", dealer: "33632", "authorized-dealer": "1160381" };
+var SUV_CONDITION_IDS = { "second-hand": "1252390", "imported-new": "1252389", new: "1252388" };
+var SUV_DRIVETRAIN_IDS = { rwd: "1105164", fwd: "1105162", "4wd": "10122" };
+var SUV_HEAVY_DAMAGE_IDS = { yes: "1263361", no: "1263360" };
+var SUV_COLOR_IDS = {
+  beige: "654790",
+  white: "33787",
+  burgundy: "33794",
+  "smoke-gray": "1104894",
+  gray: "33785",
+  "silver-gray": "210127",
+  brown: "33796",
+  red: "33788",
+  navy: "33790",
+  blue: "33792",
+  purple: "47348",
+  pink: "654450",
+  yellow: "33791",
+  black: "33786",
+  champagne: "675108",
+  orange: "33797",
+  green: "33789"
+};
 
 // src/browser/url-guard.ts
 var ALLOWED_HOSTS = ["www.sahibinden.com"];
@@ -82062,7 +82100,10 @@ var BRAND_ALIASES = {
   mercedes: "mercedes-benz",
   "mercedes benz": "mercedes-benz",
   "mercedes-benz": "mercedes-benz",
-  benz: "mercedes-benz"
+  benz: "mercedes-benz",
+  "land rover": "land-rover",
+  landrover: "land-rover",
+  "land-rover": "land-rover"
 };
 function canonicalBrand(brand) {
   const f = foldTr(brand).trim();
@@ -82079,6 +82120,33 @@ function brandModelPath(brand, model) {
   return `mercedes-benz-${series[1]}-serisi-${m.replace(/ /g, "-")}`;
 }
 var squash = (s) => foldTr(s).replace(/[\s-]+/g, "");
+var LAND_ROVER_MODELS = [
+  "range-rover-evoque",
+  "range-rover-sport",
+  "range-rover-velar",
+  "range-rover",
+  "discovery-sport",
+  "discovery",
+  "defender",
+  "freelander"
+];
+function suvPath(brand, model) {
+  let b = brand ? canonicalBrand(brand) : "";
+  let m = model ? foldTr(model).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : "";
+  if (b === "range-rover") {
+    b = "land-rover";
+    m = m.startsWith("range-rover") ? m : `range-rover${m ? `-${m}` : ""}`;
+  }
+  if (!b && m) {
+    const hit2 = LAND_ROVER_MODELS.find((x) => m === x || m.startsWith(`${x}-`));
+    if (hit2) b = "land-rover";
+  }
+  if (b !== "land-rover") return void 0;
+  if (!m) return { path: "arazi-suv-pickup-land-rover" };
+  const cleaned = m.replace(/^range-rover-(discovery|defender|freelander)/, "$1");
+  const hit = LAND_ROVER_MODELS.find((x) => cleaned === x || cleaned.startsWith(`${x}-`));
+  return hit ? { path: `arazi-suv-pickup-land-rover-${hit}` } : { path: "arazi-suv-pickup-land-rover" };
+}
 
 // src/sahibinden/url-builder.ts
 var BRAND_OF_MODEL = {
@@ -82101,65 +82169,87 @@ var slugify2 = (s) => foldTr(s).replace(/[^a-z0-9.]+/g, "-").replace(/^[-.]+|[-.
 function buildSearchUrls(q) {
   const brandSlug = q.brand ? canonicalBrand(q.brand) : "";
   const models = q.models && q.models.length > 0 ? q.models : [null];
-  const notes = [];
-  const params = new URLSearchParams();
-  const set2 = (p, v) => {
-    if (v !== void 0) params.set(p.key, String(v));
-  };
-  set2(PARAMS.priceMin, q.priceMin);
-  set2(PARAMS.priceMax, q.priceMax);
-  if (q.priceCurrency) set2(PARAMS.priceCurrency, PRICE_CURRENCY_IDS[q.priceCurrency]);
-  set2(PARAMS.yearMin, q.yearMin);
-  set2(PARAMS.yearMax, q.yearMax);
-  set2(PARAMS.kmMin, q.kmMin);
-  set2(PARAMS.kmMax, q.kmMax);
-  if (q.city) {
-    const c = resolveCity(q.city);
-    if (!c) {
-      notes.push(`\u015Eehir "${q.city}" tan\u0131nmad\u0131; \u015Fehir filtresi URL'ye eklenmedi, sahibinden panelinden se\xE7in.`);
-    } else {
-      set2(PARAMS.city, c.code);
-      if (!c.verified) {
-        notes.push(
-          `\u015Eehir kodu (${c.name} = ${c.code}) do\u011Frulanmad\u0131 (plaka kodu varsay\u0131m\u0131); yaln\u0131zca Samsun (55) ve \u0130stanbul (34) do\u011Fruland\u0131. URL beklenen \u015Fehri g\xF6stermezse \u015Fehri panelden se\xE7in.`
-        );
+  const build2 = (suv) => {
+    const notes = [];
+    const params = new URLSearchParams();
+    const set2 = (p, v) => {
+      if (v !== void 0) params.set(p.key, String(v));
+    };
+    set2(PARAMS.priceMin, q.priceMin);
+    set2(PARAMS.priceMax, q.priceMax);
+    if (q.priceCurrency) set2(PARAMS.priceCurrency, PRICE_CURRENCY_IDS[q.priceCurrency]);
+    set2(suv ? { key: SUV_PARAMS.yearMin } : PARAMS.yearMin, q.yearMin);
+    set2(suv ? { key: SUV_PARAMS.yearMax } : PARAMS.yearMax, q.yearMax);
+    set2(suv ? { key: SUV_PARAMS.kmMin } : PARAMS.kmMin, q.kmMin);
+    set2(suv ? { key: SUV_PARAMS.kmMax } : PARAMS.kmMax, q.kmMax);
+    if (q.city) {
+      const c = resolveCity(q.city);
+      if (!c) {
+        notes.push(`\u015Eehir "${q.city}" tan\u0131nmad\u0131; \u015Fehir filtresi URL'ye eklenmedi, sahibinden panelinden se\xE7in.`);
+      } else {
+        set2(PARAMS.city, c.code);
+        if (!c.verified) {
+          notes.push(
+            `\u015Eehir kodu (${c.name} = ${c.code}) do\u011Frulanmad\u0131 (plaka kodu varsay\u0131m\u0131); yaln\u0131zca Samsun (55) ve \u0130stanbul (34) do\u011Fruland\u0131. URL beklenen \u015Fehri g\xF6stermezse \u015Fehri panelden se\xE7in.`
+          );
+        }
       }
     }
-  }
-  if (q.transmission) {
-    const id = TRANSMISSION_IDS[q.transmission];
-    if (id) set2(PARAMS.transmission, id);
-    else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) i\xE7in kimlik bilinmiyor; filtreyi sahibinden panelinden se\xE7in.`);
-  }
-  if (q.fuel) {
-    set2(PARAMS.fuel, FUEL_IDS[q.fuel]);
-    if (q.fuel === "hybrid") {
-      const variants = Object.entries(HYBRID_VARIANT_IDS).map(([k, v]) => `${k}=${v}`).join(", ");
-      notes.push(`Hibrit i\xE7in Benzin(Hibrit) (a17=1312756) kullan\u0131ld\u0131; di\u011Fer t\xFCrler: ${variants}.`);
+    if (q.transmission) {
+      const id = (suv ? SUV_TRANSMISSION_IDS : TRANSMISSION_IDS)[q.transmission];
+      if (id) set2(suv ? { key: SUV_PARAMS.transmission } : PARAMS.transmission, id);
+      else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) i\xE7in kimlik bilinmiyor; filtreyi sahibinden panelinden se\xE7in.`);
     }
-  }
-  if (q.sellerType) set2(PARAMS.sellerType, SELLER_TYPE_IDS[q.sellerType]);
-  if (q.bodyType) set2(PARAMS.bodyType, BODY_TYPE_IDS[q.bodyType]);
-  if (q.color) set2(PARAMS.color, COLOR_IDS[q.color]);
-  if (q.vehicleCondition) set2(PARAMS.vehicleCondition, VEHICLE_CONDITION_IDS[q.vehicleCondition]);
-  if (q.enginePower) set2(PARAMS.enginePower, ENGINE_POWER_IDS[q.enginePower]);
-  if (q.engineVolume) set2(PARAMS.engineVolume, ENGINE_VOLUME_IDS[q.engineVolume]);
-  if (q.drivetrain) set2(PARAMS.drivetrain, DRIVETRAIN_IDS[q.drivetrain]);
-  if (q.exchange !== void 0) set2(PARAMS.exchange, q.exchange ? "yes" : "no");
-  if (q.listedWithin) set2(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
-  if (q.unpaintedOnly) set2(PARAMS.unpainted, "true");
-  if (q.noReplacedParts) set2(PARAMS.noReplacedParts, "true");
-  if (q.noHeavyDamage) set2(PARAMS.heavyDamage, HEAVY_DAMAGE_IDS.no);
-  if (q.warranty !== void 0) set2(PARAMS.warranty, q.warranty ? WARRANTY_IDS.yes : WARRANTY_IDS.no);
-  set2(PARAMS.sorting, SORTING_VALUES[q.sort]);
-  if (q.page && q.page > 1) set2(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
-  const query = params.toString();
+    if (q.fuel) {
+      set2(suv ? { key: SUV_PARAMS.fuel } : PARAMS.fuel, (suv ? SUV_FUEL_IDS : FUEL_IDS)[q.fuel]);
+      if (q.fuel === "hybrid" && !suv) {
+        const variants = Object.entries(HYBRID_VARIANT_IDS).map(([k, v]) => `${k}=${v}`).join(", ");
+        notes.push(`Hibrit i\xE7in Benzin(Hibrit) (a17=1312756) kullan\u0131ld\u0131; di\u011Fer t\xFCrler: ${variants}.`);
+      }
+    }
+    if (suv) {
+      if (q.sellerType) set2({ key: SUV_PARAMS.sellerType }, SUV_SELLER_IDS[q.sellerType]);
+      if (q.color) set2({ key: SUV_PARAMS.color }, SUV_COLOR_IDS[q.color]);
+      if (q.vehicleCondition) set2({ key: SUV_PARAMS.vehicleCondition }, SUV_CONDITION_IDS[q.vehicleCondition]);
+      if (q.drivetrain) {
+        const id = SUV_DRIVETRAIN_IDS[q.drivetrain];
+        if (id) set2({ key: SUV_PARAMS.drivetrain }, id);
+        else notes.push(`\xC7eki\u015F (${q.drivetrain}) SUV kategorisi i\xE7in eklenmedi; sahibinden panelinden se\xE7in.`);
+      }
+      const skipped = [q.bodyType && "kasa", q.enginePower && "motor g\xFCc\xFC", q.engineVolume && "motor hacmi", q.warranty !== void 0 && "garanti"].filter(Boolean);
+      if (skipped.length) notes.push(`SUV kategorisinde do\u011Frulanmad\u0131\u011F\u0131 i\xE7in URL'ye eklenmeyen filtreler: ${skipped.join(", ")} (yerel filtre yine uygulan\u0131r).`);
+    } else {
+      if (q.sellerType) set2(PARAMS.sellerType, SELLER_TYPE_IDS[q.sellerType]);
+      if (q.bodyType) set2(PARAMS.bodyType, BODY_TYPE_IDS[q.bodyType]);
+      if (q.color) set2(PARAMS.color, COLOR_IDS[q.color]);
+      if (q.vehicleCondition) set2(PARAMS.vehicleCondition, VEHICLE_CONDITION_IDS[q.vehicleCondition]);
+      if (q.enginePower) set2(PARAMS.enginePower, ENGINE_POWER_IDS[q.enginePower]);
+      if (q.engineVolume) set2(PARAMS.engineVolume, ENGINE_VOLUME_IDS[q.engineVolume]);
+      if (q.drivetrain) set2(PARAMS.drivetrain, DRIVETRAIN_IDS[q.drivetrain]);
+    }
+    if (q.exchange !== void 0) set2(PARAMS.exchange, q.exchange ? "yes" : "no");
+    if (q.listedWithin) set2(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
+    if (q.unpaintedOnly) set2(PARAMS.unpainted, "true");
+    if (q.noReplacedParts) set2(PARAMS.noReplacedParts, "true");
+    if (q.noHeavyDamage) set2(suv ? { key: SUV_PARAMS.heavyDamage } : PARAMS.heavyDamage, suv ? SUV_HEAVY_DAMAGE_IDS.no : HEAVY_DAMAGE_IDS.no);
+    if (q.warranty !== void 0 && !suv) set2(PARAMS.warranty, q.warranty ? WARRANTY_IDS.yes : WARRANTY_IDS.no);
+    set2(PARAMS.sorting, SORTING_VALUES[q.sort]);
+    if (q.page && q.page > 1) set2(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
+    const query = params.toString();
+    return { query, notes };
+  };
+  const builds = { oto: build2(false), suv: build2(true) };
   const byUrl = /* @__PURE__ */ new Map();
   for (const model of models) {
     const extra = [];
+    const suvTarget = suvPath(q.brand, model);
+    const { query, notes } = suvTarget ? builds.suv : builds.oto;
     let path9;
     let label;
-    if (model === null) {
+    if (suvTarget) {
+      path9 = `/${suvTarget.path}`;
+      label = `${q.brand ?? "Land Rover"}${model ? ` ${model}` : ""}`;
+    } else if (model === null) {
       path9 = brandSlug ? `/${brandSlug}` : "/otomobil";
       label = q.brand ?? "Otomobil";
     } else {

@@ -198,3 +198,25 @@ export function citySlug(c: CityEntry): string {
 }
 
 export const LISTING_URL = (id: string) => `${BASE}/ilan/${id}/detay`; // fallback; gerçek slug'lı URL tercih
+
+/**
+ * "Arazi, SUV & Pickup" kategorisi: filtre parametre kimlikleri otomobilden FARKLIDIR (2026-11-19, canlı site,
+ * /arazi-suv-pickup-land-rover-discovery). Otomobil kimlikleri bu kategoride sessizce yok sayılır.
+ * Burada olmayan filtreler (kasa, motor gücü/hacmi, garanti, AWD) bu kategori için eklenmez; not düşülür.
+ */
+export const SUV_PARAMS = {
+  yearMin: 'a277_min', yearMax: 'a277_max', kmMin: 'a276_min', kmMax: 'a276_max',
+  transmission: 'a279', fuel: 'a287', sellerType: 'a448', color: 'a275', vehicleCondition: 'a113988',
+  drivetrain: 'a95938', heavyDamage: 'a116446',
+} as const;
+export const SUV_TRANSMISSION_IDS: Partial<Record<Transmission, string>> = { manual: '33626', automatic: '33625' };
+export const SUV_FUEL_IDS: Partial<Record<Fuel, string>> = { gasoline: '398', diesel: '400', lpg: '50911', electric: '1234143', hybrid: '1312760' };
+export const SUV_SELLER_IDS: Partial<Record<SellerType, string>> = { owner: '33631', dealer: '33632', 'authorized-dealer': '1160381' };
+export const SUV_CONDITION_IDS: Partial<Record<VehicleCondition, string>> = { 'second-hand': '1252390', 'imported-new': '1252389', new: '1252388' };
+export const SUV_DRIVETRAIN_IDS: Partial<Record<Drivetrain, string>> = { rwd: '1105164', fwd: '1105162', '4wd': '10122' };
+export const SUV_HEAVY_DAMAGE_IDS = { yes: '1263361', no: '1263360' } as const;
+export const SUV_COLOR_IDS: Partial<Record<Color, string>> = {
+  beige: '654790', white: '33787', burgundy: '33794', 'smoke-gray': '1104894', gray: '33785', 'silver-gray': '210127', brown: '33796',
+  red: '33788', navy: '33790', blue: '33792', purple: '47348', pink: '654450', yellow: '33791', black: '33786', champagne: '675108',
+  orange: '33797', green: '33789',
+};

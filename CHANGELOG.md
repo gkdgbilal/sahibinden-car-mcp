@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-11-19
+
+### Fixed
+- **SUV category.** SUVs (e.g. Land Rover Discovery) live under `/arazi-suv-pickup-{brand}-{model}`, and that category uses different filter IDs than `/otomobil`: year `a277`, km `a276`, transmission `a279` (33625 automatic), fuel `a287` (400 diesel), seller `a448`, colour `a275`, condition `a113988`, 4x4 `a95938`, heavy damage `a116446`. The otomobil IDs (`a5`, `a4`, `a6`, `a17`) are silently ignored there (488 unfiltered results). Land Rover (Discovery, Discovery Sport, Defender, Range Rover, Evoque, Sport, Velar, Freelander; `Range Rover` also accepted as a brand) now builds the SUV path with SUV IDs; filters not verified for SUV (body type, engine power/volume, warranty, AWD) are left out of the URL with a note. Verified live: `...land-rover-discovery?a277_min=2015&a277_max=2015&a276_max=200000&a287=400&a279=33625` returned 4 matching 2015 diesel automatic listings. Other SUV brands (BMW X, Mercedes GLC, etc.) are not mapped yet.
+
 ## [Unreleased]
 
 ### Added
