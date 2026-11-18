@@ -1,3 +1,4 @@
+import { canonicalBrand, squash } from './brands.js';
 import { foldTr } from './normalize.js';
 import type { BodyType, Color, Listing, ListingSummary, SearchQuery, UnknownPolicy, VehicleCondition } from './types.js';
 import { ENGINE_POWER_RANGES, ENGINE_VOLUME_RANGES, LISTED_WITHIN_DAYS, type NumericRange } from './url-schema.js';
@@ -115,10 +116,10 @@ export function evaluateQuery(l: Item, q: FilterQuery, opts: MatchOptions = {}):
     else if (foldTr(l.city) !== foldTr(q.city)) hardFail = true;
   }
   if (q.brand) {
-    const b = foldTr(q.brand);
+    const b = canonicalBrand(q.brand);
     if (l.brand) {
-      if (foldTr(l.brand) !== b) hardFail = true;
-    } else if (!foldTr(l.title).includes(b)) {
+      if (canonicalBrand(l.brand) !== b) hardFail = true;
+    } else if (!foldTr(l.title).includes(foldTr(q.brand)) && !foldTr(l.title).includes(b.replace(/-/g, ' '))) {
       unknown.add('brand'); // arama satırında marka sütunu yok; başlıkta da geçmiyor
     }
   }
@@ -126,7 +127,8 @@ export function evaluateQuery(l: Item, q: FilterQuery, opts: MatchOptions = {}):
     const hay = [l.series, l.model, l.title].map((s) => foldTr(s));
     const hit = q.models.some((m) => {
       const f = foldTr(m);
-      return f !== '' && hay.some((h) => h.includes(f));
+      const fs = squash(m);
+      return f !== '' && hay.some((h) => h.includes(f) || squash(h).includes(fs));
     });
     if (!hit) hardFail = true;
   }

@@ -82057,6 +82057,29 @@ function parseListingPage(html3, ctx) {
   };
 }
 
+// src/sahibinden/brands.ts
+var BRAND_ALIASES = {
+  mercedes: "mercedes-benz",
+  "mercedes benz": "mercedes-benz",
+  "mercedes-benz": "mercedes-benz",
+  benz: "mercedes-benz"
+};
+function canonicalBrand(brand) {
+  const f = foldTr(brand).trim();
+  return BRAND_ALIASES[f] ?? f.replace(/\s+/g, "-");
+}
+function splitMercedesModel(model) {
+  return foldTr(model).replace(/([a-z])(\d)/g, "$1 $2").replace(/(\d)([a-z])/g, "$1 $2").replace(/\s+/g, " ").trim();
+}
+function brandModelPath(brand, model) {
+  if (canonicalBrand(brand) !== "mercedes-benz") return void 0;
+  const m = splitMercedesModel(model);
+  const series = /^([abcesr]) \d/.exec(m);
+  if (!series) return void 0;
+  return `mercedes-benz-${series[1]}-serisi-${m.replace(/ /g, "-")}`;
+}
+var squash = (s) => foldTr(s).replace(/[\s-]+/g, "");
+
 // src/sahibinden/url-builder.ts
 var BRAND_OF_MODEL = {
   golf: "volkswagen",
@@ -82076,7 +82099,7 @@ var BRAND_OF_MODEL = {
 var TRANSMISSION_LABEL = { manual: "Manuel", automatic: "Otomatik", "semi-automatic": "Yar\u0131 Otomatik" };
 var slugify2 = (s) => foldTr(s).replace(/[^a-z0-9.]+/g, "-").replace(/^[-.]+|[-.]+$/g, "");
 function buildSearchUrls(q) {
-  const brandSlug = q.brand ? slugify2(q.brand) : "";
+  const brandSlug = q.brand ? canonicalBrand(q.brand) : "";
   const models = q.models && q.models.length > 0 ? q.models : [null];
   const notes = [];
   const params = new URLSearchParams();
@@ -82143,7 +82166,7 @@ function buildSearchUrls(q) {
       const firstWord = foldTr(model).split(" ")[0] ?? "";
       const brand = brandSlug || BRAND_OF_MODEL[firstWord] || "";
       if (brand) {
-        path9 = `/${slugify2(`${brand} ${model}`)}`;
+        path9 = `/${brandModelPath(brand, model) ?? slugify2(`${brand} ${model}`)}`;
         label = `${q.brand ?? brand} ${model}`;
       } else {
         path9 = "/otomobil";
@@ -82692,10 +82715,10 @@ function evaluateQuery(l, q, opts = {}) {
     else if (foldTr(l.city) !== foldTr(q.city)) hardFail = true;
   }
   if (q.brand) {
-    const b = foldTr(q.brand);
+    const b = canonicalBrand(q.brand);
     if (l.brand) {
-      if (foldTr(l.brand) !== b) hardFail = true;
-    } else if (!foldTr(l.title).includes(b)) {
+      if (canonicalBrand(l.brand) !== b) hardFail = true;
+    } else if (!foldTr(l.title).includes(foldTr(q.brand)) && !foldTr(l.title).includes(b.replace(/-/g, " "))) {
       unknown2.add("brand");
     }
   }
@@ -82703,7 +82726,8 @@ function evaluateQuery(l, q, opts = {}) {
     const hay = [l.series, l.model, l.title].map((s) => foldTr(s));
     const hit = q.models.some((m) => {
       const f = foldTr(m);
-      return f !== "" && hay.some((h) => h.includes(f));
+      const fs8 = squash(m);
+      return f !== "" && hay.some((h) => h.includes(f) || squash(h).includes(fs8));
     });
     if (!hit) hardFail = true;
   }

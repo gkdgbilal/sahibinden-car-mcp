@@ -1,3 +1,4 @@
+import { brandModelPath, canonicalBrand } from './brands.js';
 import { foldTr } from './normalize.js';
 import type { SearchQuery } from './types.js';
 import {
@@ -26,7 +27,7 @@ export const slugify = (s: string) =>
 
 /** Arama sonuç sayfası URL'leri (model başına bir tane). Saf; ağ isteği atmaz. */
 export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
-  const brandSlug = q.brand ? slugify(q.brand) : '';
+  const brandSlug = q.brand ? canonicalBrand(q.brand) : '';
   const models = q.models && q.models.length > 0 ? q.models : [null];
 
   const notes: string[] = [];
@@ -100,7 +101,7 @@ export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
       const firstWord = foldTr(model).split(' ')[0] ?? '';
       const brand = brandSlug || BRAND_OF_MODEL[firstWord] || '';
       if (brand) {
-        path = `/${slugify(`${brand} ${model}`)}`;
+        path = `/${brandModelPath(brand, model) ?? slugify(`${brand} ${model}`)}`;
         label = `${q.brand ?? brand} ${model}`;
       } else {
         path = '/otomobil';

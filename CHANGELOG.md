@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Claude Code plugin packaging: `.claude-plugin/` (plugin + marketplace), `.mcp.json`, single-file server `bundle/server.mjs` (`npm run bundle`, esbuild) and the `sahibinden-car` skill under `skills/`; installs without `npm install`/build (Node 22.12+).
 
+### Fixed
+- Mercedes search paths verified live (2026-11-19): `Mercedes`/`Benz` -> `/mercedes-benz`, `C 200 d` / `C200d` -> `/mercedes-benz-c-serisi-c-200-d` (A/B/C/E/S/R series). The local store filter now treats brand aliases (`Mercedes` = `Mercedes-Benz`) and spacing (`C200d` = `C 200 d`) as equal. Other brands still use the derived `/{brand}-{model}` path (unverified).
+
 ### Changed
 - All 81 province plate codes (`CITIES`) are now verified against the official plate list and locked by `tests/cities.test.ts`; the "unverified city code" note is no longer added to search URLs. Live site acceptance of `address_city` was tried for 55 and 34 only.
 

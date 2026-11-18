@@ -150,3 +150,16 @@ describe('buildSearchUrls', () => {
     expect(SearchQuerySchema.safeParse({ page: 0 }).success).toBe(false);
   });
 });
+
+describe('Mercedes yolları (canlı sitede doğrulandı 2026-11-19)', () => {
+  const path = (o: object) => new URL(first(o).url).pathname;
+  it('C 200 d -> /mercedes-benz-c-serisi-c-200-d', () => {
+    expect(path({ brand: 'Mercedes', models: ['C 200 d'] })).toBe('/mercedes-benz-c-serisi-c-200-d');
+    expect(path({ brand: 'Mercedes-Benz', models: ['C200d'] })).toBe('/mercedes-benz-c-serisi-c-200-d');
+    expect(path({ brand: 'benz', models: ['C 200 d BlueTEC'] })).toBe('/mercedes-benz-c-serisi-c-200-d-bluetec');
+  });
+  it('yalnız marka -> /mercedes-benz; diğer markalar eskisi gibi', () => {
+    expect(path({ brand: 'Mercedes' })).toBe('/mercedes-benz');
+    expect(path({ brand: 'Opel', models: ['Astra'] })).toBe('/opel-astra');
+  });
+});
