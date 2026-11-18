@@ -1,9 +1,23 @@
 import { z } from 'zod';
 import { VERSION } from '../config.js';
+import type { ToolDeps } from './deps.js';
+
+export const PING_DESCRIPTION =
+  'Sağlık kontrolü: sürüm, aktif provider, yerel store\'daki ilan sayısı ve inbox klasörü.';
 
 export const pingInput = z.object({ msg: z.string().max(200).optional() });
-export const pingOutput = z.object({ pong: z.string(), version: z.string() });
+export const pingOutput = z.object({
+  pong: z.string(),
+  version: z.string(),
+  provider: z.string(),
+  storeSize: z.number(),
+  inboxDir: z.string(),
+});
 
-export function pingHandler(input: z.infer<typeof pingInput>): z.infer<typeof pingOutput> {
-  return { pong: input.msg ?? 'ok', version: VERSION };
+export async function pingHandler(
+  input: z.infer<typeof pingInput>,
+  deps: Pick<ToolDeps, 'provider'>,
+): Promise<z.infer<typeof pingOutput>> {
+  const stats = await deps.provider.stats();
+  return { pong: input.msg ?? 'ok', version: VERSION, provider: deps.provider.name, ...stats };
 }
