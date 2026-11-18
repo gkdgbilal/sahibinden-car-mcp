@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+inbox/
+store.json
+tests/fixtures/private/
+.DS_Store
