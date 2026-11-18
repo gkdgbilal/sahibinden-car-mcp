@@ -55,6 +55,9 @@ describe('sortListings', () => {
     expect(ids(sortListings([b, a, c], 'year_desc'))).toEqual(['c', 'a', 'b']);
     expect(ids(sortListings([b, a, c], 'km_asc'))).toEqual(['a', 'c', 'b']);
     expect(ids(sortListings([b, a, c], 'date_desc'))).toEqual(['c', 'a', 'b']);
+    expect(ids(sortListings([b, a, c], 'year_asc'))).toEqual(['a', 'c', 'b']);
+    expect(ids(sortListings([b, a, c], 'km_desc'))).toEqual(['c', 'a', 'b']);
+    expect(ids(sortListings([b, a, c], 'date_asc'))).toEqual(['a', 'c', 'b']);
   });
   it('girdiyi değiştirmez', () => {
     const input = [b, a, c];

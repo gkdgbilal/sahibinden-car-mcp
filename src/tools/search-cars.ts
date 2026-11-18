@@ -6,6 +6,8 @@ export const SEARCH_CARS_DESCRIPTION =
   'Yerelde içe aktarılmış sahibinden.com otomobil ilanlarında filtreler ve sıralar. ' +
   'Ayrıca kullanıcının tarayıcıda açması için hazır sahibinden arama URL\'leri döner. ' +
   'Sonuç yoksa: kullanıcıya searchUrls\'i açıp sayfayı Cmd+S ile inbox klasörüne kaydetmesini söyle, sonra import_listing_html çağır. ' +
+  'Yerel filtre yalnızca şehir/marka/model/fiyat/yıl/km/vites/yakıt için uygulanır; sellerType, bodyType, color, vehicleCondition, ' +
+  'enginePower, engineVolume, drivetrain, exchange, listedWithin, unpaintedOnly, noReplacedParts, priceCurrency, page yalnızca searchUrls\'e yansır. ' +
   'Bu araç internete bağlanmaz.';
 
 export const searchCarsInput = SearchQuerySchema;

@@ -82,14 +82,14 @@ export class ImportProvider implements Provider {
       if (Buffer.byteLength(input.html, 'utf8') > MAX_HTML_ARG) {
         report.skipped.push({ file: null, reason: 'too-large' });
       } else {
-        this.processHtml(input.html, null, 'inline-html', input.sourceUrl, report);
+        this.processHtml(input.html, null, 'inline-html', input.sourceUrl, report, undefined, input.cityHint);
       }
     } else {
       fs.mkdirSync(this.inboxDir, { recursive: true });
       const files = this.collectFiles(input.path, report);
       // sourceUrl yalnızca tek dosya için anlamlı.
       const sourceUrl = files.length === 1 ? input.sourceUrl : undefined;
-      for (const file of files) this.processFile(file, sourceUrl, report);
+      for (const file of files) this.processFile(file, sourceUrl, report, input.cityHint);
     }
 
     if (report.imported.length > 0) this.store.save();
@@ -142,14 +142,14 @@ export class ImportProvider implements Provider {
     }
   }
 
-  private processFile(file: string, sourceUrl: string | undefined, report: IngestReport): void {
+  private processFile(file: string, sourceUrl: string | undefined, report: IngestReport, cityHint?: string): void {
     const size = fs.statSync(file).size;
     if (size > MAX_FILE_BYTES) {
       report.skipped.push({ file, reason: 'too-large' });
       return;
     }
     const buf = fs.readFileSync(file);
-    this.processHtml(buf.toString('utf8'), file, file, sourceUrl, report, sha256(buf));
+    this.processHtml(buf.toString('utf8'), file, file, sourceUrl, report, sha256(buf), cityHint);
   }
 
   private processHtml(
@@ -159,6 +159,7 @@ export class ImportProvider implements Provider {
     sourceUrl: string | undefined,
     report: IngestReport,
     sha: string = sha256(html),
+    cityHint?: string,
   ): void {
     if (this.store.hasFile(sha)) {
       report.skipped.push({ file, reason: 'duplicate' });
@@ -173,7 +174,11 @@ export class ImportProvider implements Provider {
       report.skipped.push({ file, reason: 'unknown-page' });
       return;
     }
-    const ctx = { capturedAt: this.now(), ...(sourceUrl ? { sourceUrl } : {}) };
+    const ctx = {
+      capturedAt: this.now(),
+      ...(sourceUrl ? { sourceUrl } : {}),
+      ...(cityHint ? { cityHint } : {}),
+    };
     try {
       if (pageType === 'search') {
         const { items, warnings } = parseSearchPage(html, ctx);

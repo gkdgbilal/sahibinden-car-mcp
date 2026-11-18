@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Verified sahibinden URL parameters (2026-11-18): transmission, fuel, seller type, body type, color, vehicle condition, engine power/volume, drivetrain, exchange, listing date, unpainted/unchanged-parts, 8 sort orders, `pagingOffset`, `price_currency`; documented in `docs/04-URL-SCHEMA.md`.
+- 81-province plate-code table with Turkish folding; only Samsun (55) and Istanbul (34) are verified, others are flagged in the URL `note`.
+- New zod-enum fields on `search_cars`; `cityHint` on `import_listing_html`; optional `neighborhood` and `locationRaw` on listing summaries.
+
+### Changed
+- City is now sent as `address_city={plate code}` instead of a path suffix; brand-only search uses `/{brand}`.
+- Search parser reads the location cell by page context ("Province District" vs "District Neighborhood"); ambiguous cells are kept in `locationRaw` with a warning.
+
+### Removed
+- Unverified `pagingSize` parameter.
+
 ## [0.1.0] - 2026-11-18
 
 First version. Not yet published.

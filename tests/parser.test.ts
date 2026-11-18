@@ -227,6 +227,82 @@ describe('gerçek yapıyı taklit eden fixture: arama', () => {
   });
 });
 
+describe('konum hücresi: şehir filtresiz "İl İlçe" ve şehir filtreli "İlçe Mahalle"', () => {
+  const filtered = fx('real-shape.search-city.html');
+
+  it('filtresiz sayfa: bağlam unfiltered, il + ilçe, locationRaw/neighborhood yazılmaz', () => {
+    const r = parseSearchPage(fx('real-shape.search.html'), ctx);
+    expect(r.location).toEqual({ mode: 'unfiltered', city: null, source: null });
+    expect(r.items[0]).toMatchObject({ city: 'Kocaeli', district: 'Körfez' });
+    expect('locationRaw' in r.items[0]!).toBe(false);
+    expect('neighborhood' in r.items[0]!).toBe(false);
+  });
+
+  it('şehir filtreli sayfa (canonical yolu + başlık): il bağlamdan, ilçe ilk sözcük, mahalle kalan', () => {
+    const r = parseSearchPage(filtered, ctx);
+    expect(r.location).toEqual({ mode: 'city-filtered', city: 'Samsun', source: 'url' });
+    expect(r.warnings).toEqual([]);
+    expect(r.items[0]).toMatchObject({
+      city: 'Samsun', district: 'İlkadım', neighborhood: 'Merkez', locationRaw: 'İlkadım Merkez',
+    });
+    expect(r.items[1]).toMatchObject({ city: 'Samsun', district: 'Atakum', neighborhood: 'Altınkum' });
+    for (const i of r.items) expect(() => ListingSummarySchema.parse(i)).not.toThrow();
+  });
+
+  it('"19 Mayıs" gibi sayıyla başlayan ilçe iki sözcüktür', () => {
+    const r = parseSearchPage(filtered, ctx);
+    expect(r.items[2]).toMatchObject({ city: 'Samsun', district: '19 Mayıs', neighborhood: 'Merkez' });
+  });
+
+  it('yalnızca başlıktan (canonical yok) şehir filtreli sayılır', () => {
+    const html = filtered.replace(/<link rel="canonical"[^>]*>/, '');
+    expect(parseSearchPage(html, ctx).location).toEqual({ mode: 'city-filtered', city: 'Samsun', source: 'title' });
+  });
+
+  it('cityHint başlık/URL yokken konumu çözer; Türkçe katlama (izmir -> İzmir)', () => {
+    const html = filtered.replace(/<link rel="canonical"[^>]*>/, '').replace(/<title>[^<]*<\/title>/, '<title>Fiyatlar</title>');
+    expect(parseSearchPage(html, ctx).location.mode).toBe('unfiltered');
+    const r = parseSearchPage(html, { ...ctx, cityHint: 'samsun' });
+    expect(r.location).toEqual({ mode: 'city-filtered', city: 'Samsun', source: 'hint' });
+    expect(r.items[0]).toMatchObject({ city: 'Samsun', district: 'İlkadım' });
+    expect(parseSearchPage(html, { ...ctx, cityHint: 'izmir' }).items[1]!.city).toBe('İzmir');
+  });
+
+  it('sourceUrl sorgusundaki address_city (plaka) şehri verir', () => {
+    const html = filtered.replace(/<link rel="canonical"[^>]*>/, '').replace(/<title>[^<]*<\/title>/, '<title>Fiyatlar</title>');
+    const r = parseSearchPage(html, { ...ctx, sourceUrl: 'https://www.sahibinden.com/otomobil?address_city=34' });
+    expect(r.location).toEqual({ mode: 'city-filtered', city: 'İstanbul', source: 'url' });
+    expect(r.items[0]!.city).toBe('İstanbul');
+  });
+
+  it('çelişen sinyaller (başlık Samsun, URL İstanbul): tahmin yok, locationRaw + uyarı', () => {
+    const r = parseSearchPage(filtered, { ...ctx, sourceUrl: 'https://www.sahibinden.com/otomobil?address_city=34' });
+    // canonical (Samsun) ile sourceUrl (İstanbul) çelişir
+    expect(r.location.mode).toBe('ambiguous');
+    expect(r.items[0]).toMatchObject({ city: null, district: null, locationRaw: 'İlkadım Merkez' });
+    expect(r.warnings.some((w) => w.includes('1000000201') && w.includes('belirsiz'))).toBe(true);
+  });
+
+  it('filtresiz varsayımda ilk sözcük il değilse (sinyal yok) belirsiz: il/ilçe boş, locationRaw korunur', () => {
+    const html = filtered.replace(/<link rel="canonical"[^>]*>/, '').replace(/<title>[^<]*<\/title>/, '<title>Fiyatlar</title>');
+    const r = parseSearchPage(html, ctx);
+    expect(r.items[0]).toMatchObject({ city: null, district: null, locationRaw: 'İlkadım Merkez' });
+    expect(r.warnings.length).toBe(3);
+  });
+
+  it('şehir filtreli varsayımda hücre il adıyla başlıyorsa çelişki: belirsiz', () => {
+    const html = filtered.replace('İlkadım Merkez', 'Samsun Atakum');
+    const r = parseSearchPage(html, ctx);
+    expect(r.items[0]).toMatchObject({ city: null, district: null, locationRaw: 'Samsun Atakum' });
+    expect(r.items[1]!.city).toBe('Samsun');
+  });
+
+  it('<br> ile ayrık satırlar filtreli sayfada ilçe + mahalle olur', () => {
+    const html = filtered.replace('İlkadım Merkez', 'İlkadım<br>Cumhuriyet Mah');
+    expect(parseSearchPage(html, ctx).items[0]).toMatchObject({ district: 'İlkadım', neighborhood: 'Cumhuriyet Mah' });
+  });
+});
+
 describe('gerçek yapıyı taklit eden fixture: ilan', () => {
   const html = fx('real-shape.listing.html');
   const l = parseListingPage(html, ctx);

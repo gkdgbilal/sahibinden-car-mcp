@@ -1,6 +1,10 @@
 import { foldTr } from './normalize.js';
 import type { SearchQuery } from './types.js';
-import { BASE, CITY_MODE, FUEL_IDS, PARAMS, TRANSMISSION_IDS } from './url-schema.js';
+import {
+  BASE, BODY_TYPE_IDS, COLOR_IDS, DRIVETRAIN_IDS, ENGINE_POWER_IDS, ENGINE_VOLUME_IDS, FUEL_IDS,
+  HYBRID_VARIANT_IDS, LISTED_WITHIN_VALUES, PAGE_SIZE, PARAMS, PRICE_CURRENCY_IDS, SELLER_TYPE_IDS,
+  SORTING_VALUES, TRANSMISSION_IDS, VEHICLE_CONDITION_IDS, resolveCity,
+} from './url-schema.js';
 
 export interface SearchUrl {
   label: string;
@@ -14,17 +18,11 @@ const BRAND_OF_MODEL: Record<string, string> = {
   polo: 'volkswagen', octavia: 'skoda', '320': 'bmw',
 };
 
-const SORTING: Partial<Record<SearchQuery['sort'], string>> = {
-  price_asc: 'price_asc',
-  price_desc: 'price_desc',
-  date_desc: 'date_desc',
-};
-
 const TRANSMISSION_LABEL = { manual: 'Manuel', automatic: 'Otomatik', 'semi-automatic': 'Yarı Otomatik' } as const;
-const FUEL_LABEL = { gasoline: 'Benzin', diesel: 'Dizel', lpg: 'LPG', hybrid: 'Hibrit', electric: 'Elektrik' } as const;
 
+/** Kategori yolu için slug; "1.3" gibi motor hacmindeki nokta korunur (/opel-astra-1.3-cdti). */
 const slugify = (s: string) =>
-  foldTr(s).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  foldTr(s).replace(/[^a-z0-9.]+/g, '-').replace(/^[-.]+|[-.]+$/g, '');
 
 /** Arama sonuç sayfası URL'leri (model başına bir tane). Saf; ağ isteği atmaz. */
 export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
@@ -33,29 +31,59 @@ export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
 
   const notes: string[] = [];
   const params = new URLSearchParams();
-  const num = (p: { key: string }, v: number | undefined) => {
+  const set = (p: { key: string }, v: string | number | undefined) => {
     if (v !== undefined) params.set(p.key, String(v));
   };
-  num(PARAMS.priceMin, q.priceMin);
-  num(PARAMS.priceMax, q.priceMax);
-  num(PARAMS.yearMin, q.yearMin);
-  num(PARAMS.yearMax, q.yearMax);
-  num(PARAMS.kmMin, q.kmMin);
-  num(PARAMS.kmMax, q.kmMax);
-  const sorting = SORTING[q.sort];
-  if (sorting) params.set(PARAMS.sorting.key, sorting);
 
-  // Vites/yakıt: ID bilinmiyorsa URL'e eklenmez.
-  if (q.transmission && !TRANSMISSION_IDS[q.transmission]) {
-    notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) filtresini sahibinden panelinden seçin.`);
-  }
-  if (q.fuel && !FUEL_IDS[q.fuel]) {
-    notes.push(`Yakıt (${FUEL_LABEL[q.fuel]}) filtresini sahibinden panelinden seçin.`);
-  }
-  if (!Object.values(PARAMS).some((p) => p.verified)) notes.push('URL şeması doğrulanmadı.');
+  set(PARAMS.priceMin, q.priceMin);
+  set(PARAMS.priceMax, q.priceMax);
+  if (q.priceCurrency) set(PARAMS.priceCurrency, PRICE_CURRENCY_IDS[q.priceCurrency]); // TL: parametre yok
+  set(PARAMS.yearMin, q.yearMin);
+  set(PARAMS.yearMax, q.yearMax);
+  set(PARAMS.kmMin, q.kmMin);
+  set(PARAMS.kmMax, q.kmMax);
 
-  const citySlug = q.city ? slugify(q.city) : '';
-  if (citySlug && CITY_MODE === 'query') params.set('address_city', citySlug);
+  if (q.city) {
+    const c = resolveCity(q.city);
+    if (!c) {
+      notes.push(`Şehir "${q.city}" tanınmadı; şehir filtresi URL'ye eklenmedi, sahibinden panelinden seçin.`);
+    } else {
+      set(PARAMS.city, c.code);
+      if (!c.verified) {
+        notes.push(
+          `Şehir kodu (${c.name} = ${c.code}) doğrulanmadı (plaka kodu varsayımı); yalnızca Samsun (55) ve İstanbul (34) doğrulandı. ` +
+            'URL beklenen şehri göstermezse şehri panelden seçin.',
+        );
+      }
+    }
+  }
+
+  if (q.transmission) {
+    const id = TRANSMISSION_IDS[q.transmission];
+    if (id) set(PARAMS.transmission, id);
+    else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) için kimlik bilinmiyor; filtreyi sahibinden panelinden seçin.`);
+  }
+  if (q.fuel) {
+    set(PARAMS.fuel, FUEL_IDS[q.fuel]);
+    if (q.fuel === 'hybrid') {
+      const variants = Object.entries(HYBRID_VARIANT_IDS).map(([k, v]) => `${k}=${v}`).join(', ');
+      notes.push(`Hibrit için Benzin(Hibrit) (a17=1312756) kullanıldı; diğer türler: ${variants}.`);
+    }
+  }
+  if (q.sellerType) set(PARAMS.sellerType, SELLER_TYPE_IDS[q.sellerType]);
+  if (q.bodyType) set(PARAMS.bodyType, BODY_TYPE_IDS[q.bodyType]);
+  if (q.color) set(PARAMS.color, COLOR_IDS[q.color]);
+  if (q.vehicleCondition) set(PARAMS.vehicleCondition, VEHICLE_CONDITION_IDS[q.vehicleCondition]);
+  if (q.enginePower) set(PARAMS.enginePower, ENGINE_POWER_IDS[q.enginePower]);
+  if (q.engineVolume) set(PARAMS.engineVolume, ENGINE_VOLUME_IDS[q.engineVolume]);
+  if (q.drivetrain) set(PARAMS.drivetrain, DRIVETRAIN_IDS[q.drivetrain]);
+  if (q.exchange !== undefined) set(PARAMS.exchange, q.exchange ? 'yes' : 'no');
+  if (q.listedWithin) set(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
+  if (q.unpaintedOnly) set(PARAMS.unpainted, 'true');
+  if (q.noReplacedParts) set(PARAMS.noReplacedParts, 'true');
+  set(PARAMS.sorting, SORTING_VALUES[q.sort]);
+  if (q.page && q.page > 1) set(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
+
   const query = params.toString();
 
   const byUrl = new Map<string, SearchUrl>();
@@ -64,10 +92,11 @@ export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
     let path: string;
     let label: string;
     if (model === null) {
-      path = brandSlug ? `/otomobil/${brandSlug}` : '/otomobil';
+      path = brandSlug ? `/${brandSlug}` : '/otomobil';
       label = q.brand ?? 'Otomobil';
     } else {
-      const brand = brandSlug || BRAND_OF_MODEL[foldTr(model)] || '';
+      const firstWord = foldTr(model).split(' ')[0] ?? '';
+      const brand = brandSlug || BRAND_OF_MODEL[firstWord] || '';
       if (brand) {
         path = `/${slugify(`${brand} ${model}`)}`;
         label = `${q.brand ?? brand} ${model}`;
@@ -77,7 +106,6 @@ export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
         extra.push(`"${model}" için marka bilinmiyor; genel otomobil sayfası kullanıldı, modeli panelden seçin.`);
       }
     }
-    if (citySlug && CITY_MODE === 'path') path += `/${citySlug}`;
     if (q.city) label += ` - ${q.city}`;
 
     const url = `${BASE}${path}${query ? `?${query}` : ''}`;

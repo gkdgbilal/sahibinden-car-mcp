@@ -108,6 +108,8 @@ await server.connect(new StdioServerTransport());
 
 ## 4. Sahibinden URL / filtre şeması
 
+> GÜNCEL: bu bölüm ilk tahminlerdir. Doğrulanmış şema 2026-11-18 tarihli `docs/04-URL-SCHEMA.md` içindedir; tablo aşağıda tarihsel kayıt olarak kalır.
+
 Probe engellendiği için **canlı doğrulanamadı**; aşağıdakiler bilgi kaynaklıdır. Güven seviyesi belirtilmiştir. Tüm sabitler tek dosyada (`src/sahibinden/url-schema.ts`) tutulacak ve kullanıcının tarayıcısından alınmış gerçek bir URL ile düzeltilecek.
 
 | Filtre | URL karşılığı (tahmini) | Güven |

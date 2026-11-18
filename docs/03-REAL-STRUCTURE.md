@@ -14,7 +14,7 @@ Yalnızca yapı bilgisi; gerçek ilan verisi/satıcı bilgisi burada yok. Fixtur
   4. `searchResultsAttributeValue` ×3 — sırayla **yıl**, **km** ("226.000"), **renk**
   5. `searchResultsPriceValue` — "549.000 TL"
   6. `searchResultsDateValue` — "18 Kasım 2026"
-  7. `searchResultsLocationValue` — "Kocaeli Körfez" (il + ilçe boşlukla)
+  7. `searchResultsLocationValue` — şehir filtresiz sayfada "Kocaeli Körfez" (il + ilçe), şehir filtreli sayfada "İlkadım Merkez" (ilçe + mahalle); bkz. docs/04-URL-SCHEMA.md
   8. `ignore-me`
 - Başlık satırı (thead) etiketleri gözlemlenemedi; sütun sırası yukarıdaki gibi (yıl, km, renk). Vites bu listede YOK.
 - Sayfalama: `<ul class="pageNaviButtons">`, bağlantılar `?pagingOffset=20`, `40`, ... (sayfa başı 20 ilan).

@@ -5,12 +5,14 @@ import type { ToolDeps } from './deps.js';
 export const IMPORT_LISTING_HTML_DESCRIPTION =
   'Kullanıcının tarayıcıdan kaydettiği sahibinden arama/ilan sayfalarını (.html) içe aktarır. ' +
   'path verilmezse inbox klasöründeki yeni dosyaları işler; path yalnızca inbox içinde olabilir (göreli yol inbox\'a göre çözülür). ' +
-  'Büyük HTML\'i html argümanına koyma; path kullan.';
+  'Büyük HTML\'i html argümanına koyma; path kullan. ' +
+  'Şehir filtreli arama sayfası kaydedildiyse (konum hücresi "İlçe Mahalle") ve sayfadan şehir anlaşılamıyorsa cityHint ver.';
 
 export const importListingHtmlInput = z.object({
   path: z.string().max(1000).optional(),
   html: z.string().max(MAX_HTML_ARG).optional(),
   sourceUrl: z.url().optional(),
+  cityHint: z.string().max(40).optional(),
 });
 export const importListingHtmlOutput = z.object({
   imported: z.array(

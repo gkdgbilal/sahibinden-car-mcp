@@ -12,6 +12,8 @@ import {
   parseTrNumber,
   parseYesNo,
 } from './normalize.js';
+import { CITIES, citySlug, resolveCity } from './url-schema.js';
+import type { CityEntry } from './url-schema.js';
 import type {
   Listing,
   ListingSummary,
@@ -124,12 +126,107 @@ export interface SearchPagination {
   pageSize: number | null;
 }
 
+/** Konum hücresinin nasıl okunduğu: şehir filtreli sayfada hücre "İlçe Mahalle", filtresizde "İl İlçe". */
+export interface LocationContext {
+  mode: 'city-filtered' | 'unfiltered' | 'ambiguous';
+  /** city-filtered iken il adı. */
+  city: string | null;
+  source: 'hint' | 'url' | 'title' | null;
+}
+
 export interface SearchParseResult {
   items: ListingSummary[];
   warnings: string[];
   /** "aramanızda 2.836 ilan bulundu" -> 2836; bulunamazsa null. */
   totalCount: number | null;
   pagination: SearchPagination | null;
+  location: LocationContext;
+}
+
+/** URL'den şehir: `address_city=<plaka>` sorgusu ya da son yol parçası şehir slug'ı (/opel-astra/samsun). */
+function cityFromUrl(url: string | null | undefined): CityEntry | undefined {
+  if (!url) return undefined;
+  let u: URL;
+  try {
+    u = new URL(url, SITE);
+  } catch {
+    return undefined;
+  }
+  const code = u.searchParams.get('address_city');
+  if (code) return resolveCity(code);
+  const last = u.pathname.split('/').filter(Boolean).pop();
+  if (!last) return undefined;
+  return CITIES.find((c) => citySlug(c) === last.toLowerCase());
+}
+
+/** Başlık şehir adıyla başlıyorsa ("Samsun Opel Astra ... Fiyatları") o şehir. */
+function cityFromTitle(title: string): CityEntry | undefined {
+  const t = foldTr(title);
+  return CITIES.find((c) => {
+    const n = foldTr(c.name);
+    return t === n || t.startsWith(`${n} `);
+  });
+}
+
+/** Şehir filtresi bağlamını belirler; çelişen sinyaller "ambiguous" döner (tahmin yürütülmez). */
+function detectLocationContext($: CheerioAPI, html: string, ctx: ParseContext): LocationContext {
+  if (ctx.cityHint) {
+    const c = resolveCity(ctx.cityHint);
+    return c
+      ? { mode: 'city-filtered', city: c.name, source: 'hint' }
+      : { mode: 'ambiguous', city: null, source: 'hint' };
+  }
+  const urlCities = [extractPageUrl($, html, ctx), ctx.sourceUrl]
+    .map(cityFromUrl)
+    .filter((c): c is CityEntry => c !== undefined);
+  const fromUrl = new Set(urlCities.map((c) => c.code));
+  if (fromUrl.size > 1) return { mode: 'ambiguous', city: null, source: 'url' };
+  const titleCity = cityFromTitle($('title').first().text());
+  if (fromUrl.size === 1) {
+    const c = urlCities[0]!;
+    if (titleCity && titleCity.code !== c.code) return { mode: 'ambiguous', city: null, source: 'url' };
+    return { mode: 'city-filtered', city: c.name, source: 'url' };
+  }
+  if (titleCity) return { mode: 'city-filtered', city: titleCity.name, source: 'title' };
+  return { mode: 'unfiltered', city: null, source: null };
+}
+
+interface ParsedLocation {
+  city: string | null;
+  district: string | null;
+  neighborhood?: string | null;
+  locationRaw?: string;
+  warning?: string;
+}
+
+/**
+ * Konum hücresi: filtresiz sayfada "İl İlçe", şehir filtreli sayfada "İlçe Mahalle".
+ * Belirsizse il/ilçe boş bırakılır, ham metin locationRaw'da korunur.
+ */
+function parseLocation(lines: string[], loc: LocationContext, id: string): ParsedLocation {
+  if (lines.length === 0) return { city: null, district: null };
+  const raw = lines.join(' ');
+  const ambiguous = (why: string): ParsedLocation => ({
+    city: null, district: null, locationRaw: raw, warning: `${id}: konum belirsiz (${why}); ham metin locationRaw'da`,
+  });
+  // <br> ile ayrık satırlar yoksa boşluktan böl.
+  const split = (): string[] => {
+    if (lines.length >= 2) return [lines[0]!, lines.slice(1).join(' ')];
+    const parts = raw.split(' ');
+    // "19 Mayıs" gibi sayıyla başlayan ilçe adı iki kelimedir.
+    const n = /^\d+$/.test(parts[0]!) && parts.length > 2 ? 2 : 1;
+    return parts.length > n ? [parts.slice(0, n).join(' '), parts.slice(n).join(' ')] : [raw];
+  };
+  const [first = '', rest] = split();
+
+  if (loc.mode === 'ambiguous') return ambiguous('şehir filtresi sinyalleri çelişiyor');
+  if (loc.mode === 'city-filtered') {
+    if (foldTr(first) === foldTr(loc.city)) return ambiguous('hücre il adıyla başlıyor, şehir filtreli sayfa varsayımıyla çelişiyor');
+    // locationRaw: ilçe/mahalle ayrımı sezgisel olduğu için ham metin her zaman korunur.
+    return { city: loc.city, district: first || null, neighborhood: rest ?? null, locationRaw: raw };
+  }
+  if (!resolveCity(first)) return ambiguous('ilk sözcük il adı değil');
+  return { city: first, district: rest ?? null };
 }
 
 /** Hücre metni; favori kutusu, gizli input/stil/script ve gizli elemanlar dışlanır. */
@@ -162,6 +259,7 @@ function extractPagination($: CheerioAPI): SearchPagination | null {
 export function parseSearchPage(html: string, ctx: ParseContext): SearchParseResult {
   const $ = load(html);
   const warnings: string[] = [];
+  const location = detectLocationContext($, html, ctx);
 
   // Başlık hücrelerinden sütun indeksleri (gerçek sayfada thead gözlemlenemedi; yoksa sınıflara düşer)
   const colIndex: Partial<Record<SearchField, number>> = {};
@@ -227,12 +325,8 @@ export function parseSearchPage(html: string, ctx: ParseContext): SearchParseRes
     const price = parseTrNumber(priceText);
     if (price === null) warnings.push(`${id}: fiyat okunamadı`);
 
-    // il / ilçe: <br> ile ayrık ya da boşlukla ("Kocaeli Körfez" -> il + ilçe; varsayım: il tek kelime)
-    let locLines = lines('location');
-    if (locLines.length === 1) {
-      const parts = locLines[0]!.split(' ');
-      if (parts.length >= 2) locLines = [parts[0]!, parts.slice(1).join(' ')];
-    }
+    const place = parseLocation(lines('location'), location, id);
+    if (place.warning) warnings.push(place.warning);
 
     items.push({
       id,
@@ -246,8 +340,10 @@ export function parseSearchPage(html: string, ctx: ParseContext): SearchParseRes
       color: text('color'),
       price,
       currency: parseCurrency(priceText),
-      city: locLines[0] ?? null,
-      district: locLines[1] ?? null,
+      city: place.city,
+      district: place.district,
+      ...(place.neighborhood !== undefined ? { neighborhood: place.neighborhood } : {}),
+      ...(place.locationRaw !== undefined ? { locationRaw: place.locationRaw } : {}),
       listingDate: parseTrDate(text('date')),
       transmission: null,
       fuel: null,
@@ -257,7 +353,7 @@ export function parseSearchPage(html: string, ctx: ParseContext): SearchParseRes
   });
 
   if (items.length === 0) warnings.push('arama sayfasında ilan satırı bulunamadı');
-  return { items, warnings, totalCount: extractTotalCount($), pagination: extractPagination($) };
+  return { items, warnings, totalCount: extractTotalCount($), pagination: extractPagination($), location };
 }
 
 // ---------- ilan detay sayfası ----------

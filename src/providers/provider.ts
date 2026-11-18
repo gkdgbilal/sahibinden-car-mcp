@@ -12,6 +12,8 @@ export interface IngestInput {
   path?: string;
   html?: string;
   sourceUrl?: string;
+  /** Kaydedilen arama sayfası şehir filtreliyse şehir adı; konum hücresi "İlçe Mahalle" olarak okunur. */
+  cityHint?: string;
 }
 
 export interface IngestReport {

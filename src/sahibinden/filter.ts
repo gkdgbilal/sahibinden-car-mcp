@@ -69,8 +69,11 @@ export function sortListings<T extends Item>(list: T[], sort: SearchQuery['sort'
     price_asc: (a, b) => nullLast(a.price, b.price, 1),
     price_desc: (a, b) => nullLast(a.price, b.price, -1),
     year_desc: (a, b) => nullLast(a.year, b.year, -1),
+    year_asc: (a, b) => nullLast(a.year, b.year, 1),
     km_asc: (a, b) => nullLast(a.km, b.km, 1),
+    km_desc: (a, b) => nullLast(a.km, b.km, -1),
     date_desc: (a, b) => nullLast(a.listingDate, b.listingDate, -1),
+    date_asc: (a, b) => nullLast(a.listingDate, b.listingDate, 1),
   };
   return [...list].sort(cmp[sort]);
 }
