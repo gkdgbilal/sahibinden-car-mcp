@@ -40,7 +40,7 @@ Search result rows usually do not show transmission or fuel. Save the individual
 - npm
 
 ```bash
-git clone <repository-url> sahibinden-car-mcp
+git clone https://github.com/gkdgbilal/sahibinden-car-mcp.git
 cd sahibinden-car-mcp
 npm install
 npm run build

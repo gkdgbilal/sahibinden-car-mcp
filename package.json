@@ -40,5 +40,13 @@
     "@types/node": "^24.19.2",
     "typescript": "^6.0.3",
     "vitest": "^5.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gkdgbilal/sahibinden-car-mcp.git"
+  },
+  "homepage": "https://github.com/gkdgbilal/sahibinden-car-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/gkdgbilal/sahibinden-car-mcp/issues"
   }
 }

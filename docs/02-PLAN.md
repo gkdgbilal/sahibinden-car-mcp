@@ -14,7 +14,7 @@ Proje kökü: `/path/to/sahibinden-car-mcp` (aşağıda `./`).
 5. Parser ve normalize fonksiyonları **saf**: I/O yok, `Date.now()` yok (zaman parametre olarak gelir).
 6. Kişisel veri: satıcı adı/telefon/profil **parse edilmez**. Gerçek ilan HTML'i repoya **girmez** (yalnızca anonimleştirilmiş, küçültülmüş fixture).
 7. Her dalga sonunda o dalganın **doğrulama komutu** yeşil olmalı; sonra milestone commit. Dalga dışı dosyaya dokunma; dalgalar arası refactor yok.
-8. Git: kişisel kimlik (bkz. `docs/00-CONTEXT.md`, şirket e-postası değil) repo-lokal `git config` ile. Push **yok** (W5 sonunda kullanıcı onayıyla).
+8. Git: kişisel kimlik (şirket e-postası değil) repo-lokal `git config` ile. Push **yok** (W5 sonunda kullanıcı onayıyla).
 9. Token bütçesi dar: gereksiz dosya okuma/ekran görüntüsü yok; test çıktısında yalnızca özet.
 
 Paket sürümleri (2026-11-18 doğrulandı):
