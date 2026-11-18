@@ -251,3 +251,133 @@ describe('ImportProvider.search: yerel filtreler ve sayaçlar', () => {
     expect((await provider.search(q({ listedWithin: '3days' }))).totalMatched).toBe(4);
   });
 });
+
+describe('ImportProvider: yakalama zamanı (fileTime) ve arama bağlamı', () => {
+  const html = () => fs.readFileSync(path.join(fxDir, 'search.synthetic.html'), 'utf8');
+  const mk = (fileTime?: (f: string) => Date | null) => {
+    const store = new JsonStore(path.join(dir, 'store-ft.json'));
+    return { store, p: new ImportProvider({ store, inboxDir: inbox, now: () => NOW, ...(fileTime ? { fileTime } : {}) }) };
+  };
+
+  it('fileTime verilirse capturedAt = dosya zamanı (dosya adına göre farklı)', async () => {
+    fs.writeFileSync(path.join(inbox, 'a.html'), html());
+    fs.writeFileSync(path.join(inbox, 'b.html'), html().replace('875.000 TL', '860.000 TL'));
+    const times: Record<string, string> = { 'a.html': '2026-11-10T08:00:00.000Z', 'b.html': '2026-11-15T08:00:00.000Z' };
+    const { store, p } = mk((f) => new Date(times[path.basename(f)]!));
+    await p.ingest({});
+    const e = store.get('1000000001')!;
+    expect(e.summary!.capturedAt).toBe('2026-11-15T08:00:00.000Z');
+    expect(e.priceHistory).toEqual([
+      { price: 875000, currency: 'TL', capturedAt: '2026-11-10T08:00:00.000Z' },
+      { price: 860000, currency: 'TL', capturedAt: '2026-11-15T08:00:00.000Z' },
+    ]);
+    expect(e.observations!.map((o) => o.at)).toEqual(['2026-11-10T08:00:00.000Z', '2026-11-15T08:00:00.000Z']);
+  });
+
+  it('dosya sırası ters olsa da (eski fiyatlı dosya sonra işlense) geçmiş ve anlık görüntü doğru', async () => {
+    // a.html (yeni mtime, 860k), b.html (eski mtime, 875k): alfabetik sırada yeni önce işlenir.
+    fs.writeFileSync(path.join(inbox, 'a.html'), html().replace('875.000 TL', '860.000 TL'));
+    fs.writeFileSync(path.join(inbox, 'b.html'), html());
+    const times: Record<string, string> = { 'a.html': '2026-11-15T08:00:00.000Z', 'b.html': '2026-11-10T08:00:00.000Z' };
+    const { store, p } = mk((f) => new Date(times[path.basename(f)]!));
+    await p.ingest({});
+    const e = store.get('1000000001')!;
+    expect(e.priceHistory.map((x) => x.price)).toEqual([875000, 860000]);
+    expect(e.summary!.price).toBe(860000);
+    // force yeniden okuma gözlem listesini değiştirmez
+    await p.ingest({ force: true });
+    expect(store.get('1000000001')!.observations).toHaveLength(2);
+    expect(store.get('1000000001')!.priceHistory.map((x) => x.price)).toEqual([875000, 860000]);
+  });
+
+  it('gelecekteki dosya zamanı now\'a kırpılır', async () => {
+    fs.writeFileSync(path.join(inbox, 'a.html'), html());
+    const { store, p } = mk(() => new Date('2030-01-01T00:00:00.000Z'));
+    await p.ingest({});
+    expect(store.get('1000000001')!.summary!.capturedAt).toBe(NOW);
+  });
+
+  it('fileTime verilmezse / null ya da hata dönerse now', async () => {
+    fs.writeFileSync(path.join(inbox, 'a.html'), html());
+    const none = mk();
+    await none.p.ingest({});
+    expect(none.store.get('1000000001')!.summary!.capturedAt).toBe(NOW);
+
+    for (const ft of [() => null, () => { throw new Error('stat'); }, () => new Date('x')]) {
+      const store = new JsonStore(path.join(dir, `s-${Math.random()}.json`));
+      const pr = new ImportProvider({ store, inboxDir: inbox, now: () => NOW, fileTime: ft });
+      await pr.ingest({});
+      expect(store.get('1000000001')!.summary!.capturedAt).toBe(NOW);
+    }
+  });
+
+  it('satır içi html her zaman now kullanır (fileTime çağrılmaz)', async () => {
+    let called = 0;
+    const { store, p } = mk(() => { called++; return new Date('2026-11-01T00:00:00.000Z'); });
+    await p.ingest({ html: html() });
+    expect(called).toBe(0);
+    expect(store.get('1000000001')!.summary!.capturedAt).toBe(NOW);
+  });
+
+  it('PARSER_VERSION 3: parserVersion 2 ile işaretli dosya yeniden okunur, gözlemler çoğalmaz', async () => {
+    expect(PARSER_VERSION).toBe(3);
+    const h = html();
+    const sha = createHash('sha256').update(h).digest('hex');
+    const { store, p } = mk();
+    await p.ingest({ html: h });
+    const before = JSON.stringify(store.get('1000000001')!.observations);
+    store.markFile(sha, 'inline-html', NOW, 2);
+    const r = await p.ingest({ html: h });
+    expect(r.skipped).toEqual([]);
+    expect(r.imported).toHaveLength(1);
+    expect(JSON.stringify(store.get('1000000001')!.observations)).toBe(before);
+    expect(store.getFile(sha)?.parserVersion).toBe(3);
+  });
+
+  it('filtreli arama kaydı: searches[key] dolu, gözlemlerde filters/searchKey var', async () => {
+    fs.copyFileSync(path.join(fxDir, 'search.filtered.synthetic.html'), path.join(inbox, 'f.html'));
+    const { store, p } = mk(() => new Date('2026-11-12T10:00:00.000Z'));
+    const r = await p.ingest({});
+    expect(r.imported[0]).toMatchObject({ pageType: 'search', count: 3 });
+    const key = '/opel-astra-1.3-cdti?a5_max=2012&a5_min=2010&unchangingTracks=true&unpaintedParts=true';
+    const info = store.searches()[key]!;
+    expect(info).toMatchObject({
+      path: '/opel-astra-1.3-cdti',
+      category: 'opel-astra-1.3-cdti',
+      filters: ['unpainted', 'noReplaced'],
+      sorting: 'price_asc',
+      filtersKnown: true,
+      firstObservedAt: '2026-11-12T10:00:00.000Z',
+      lastObservedAt: '2026-11-12T10:00:00.000Z',
+    });
+    for (const id of ['1000000001', '1000000002', '1000000003']) {
+      expect(store.get(id)!.observations![0]).toMatchObject({
+        kind: 'search', searchKey: key, filters: ['unpainted', 'noReplaced'], at: '2026-11-12T10:00:00.000Z',
+      });
+    }
+    // kalıcı
+    const reloaded = new JsonStore(path.join(dir, 'store-ft.json'));
+    expect(reloaded.searches()[key]!.filtersKnown).toBe(true);
+  });
+
+  it('sorgusuz arama (yalnız canonical): searchKey ?* ve filtersKnown false; öğelerde filters yok', async () => {
+    const { store, p } = mk();
+    await p.ingest({ html: html() });
+    const [key, info] = Object.entries(store.searches())[0]!;
+    expect(key.endsWith('?*')).toBe(true);
+    expect(info.filtersKnown).toBe(false);
+    expect(store.get('1000000001')!.observations![0]!.filters).toBeUndefined();
+  });
+
+  it('sourceUrl (tarayıcı modu yolu) bağlam adayıdır', async () => {
+    const { store, p } = mk();
+    await p.ingest({
+      html: html(),
+      sourceUrl: 'https://www.sahibinden.com/otomobil-volkswagen-golf?unpaintedParts=true&sorting=date_desc',
+    });
+    const [key, info] = Object.entries(store.searches())[0]!;
+    expect(key).toBe('/otomobil-volkswagen-golf?unpaintedParts=true');
+    expect(info.filters).toEqual(['unpainted']);
+    expect(info.sorting).toBe('date_desc');
+  });
+});

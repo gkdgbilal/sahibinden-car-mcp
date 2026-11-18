@@ -426,3 +426,39 @@ describe('gerçek yapıyı taklit eden fixture: ilan', () => {
     expect(l2.warnings.some((w) => w.includes('konum'))).toBe(true);
   });
 });
+
+describe('parseSearchPage pageUrls (arama bağlamı)', () => {
+  it('mevcut fixture\'larda items filtre eklenmesinden etkilenmez: filtreli fixture aynı öğeleri verir', () => {
+    const base = parseSearchPage(fx('search.synthetic.html'), ctx);
+    const filtered = parseSearchPage(fx('search.filtered.synthetic.html'), ctx);
+    expect(filtered.items).toEqual(base.items);
+    expect(filtered.totalCount).toBe(base.totalCount);
+  });
+
+  it('saved-from (sorguyla), canonical ve sayfalama bağlantısı sırayla, tekil', () => {
+    const r = parseSearchPage(fx('search.filtered.synthetic.html'), ctx);
+    expect(r.pageUrls).toEqual([
+      'https://www.sahibinden.com/opel-astra-1.3-cdti?a5_min=2010&a5_max=2012&unpaintedParts=true&unchangingTracks=true&sorting=price_asc',
+      'https://www.sahibinden.com/opel-astra-1.3-cdti',
+      'https://www.sahibinden.com/opel-astra-1.3-cdti?pagingOffset=20&unpaintedParts=true&unchangingTracks=true',
+    ]);
+  });
+
+  it('ctx.sourceUrl saved-from\'dan sonra, og:url canonical\'dan önce; &amp; çözülür', () => {
+    const html = `<!-- saved from url=(0050)https://www.sahibinden.com/a?x=1&amp;y=2 -->
+<html><head><meta property="og:url" content="https://www.sahibinden.com/og"><link rel="canonical" href="/can"></head>
+<body><table id="searchResultsTable"><tbody></tbody></table></body></html>`;
+    const r = parseSearchPage(html, { ...ctx, sourceUrl: 'https://www.sahibinden.com/src?z=3' });
+    expect(r.pageUrls).toEqual([
+      'https://www.sahibinden.com/a?x=1&y=2',
+      'https://www.sahibinden.com/src?z=3',
+      'https://www.sahibinden.com/og',
+      'https://www.sahibinden.com/can',
+    ]);
+  });
+
+  it('URL ipucu yoksa boş dizi', () => {
+    const r = parseSearchPage('<html><body><table id="searchResultsTable"></table></body></html>', ctx);
+    expect(r.pageUrls).toEqual([]);
+  });
+});

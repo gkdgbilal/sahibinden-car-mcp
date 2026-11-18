@@ -1,0 +1,196 @@
+{
+ "version": 1,
+ "listings": {
+  "1000000001": {
+   "summary": {
+    "id": "1000000001",
+    "url": "https://www.sahibinden.com/ilan/vasita-otomobil-volkswagen-golf-ornek-temiz-1000000001/detay",
+    "title": "Sahibinden temiz Golf 1.6 TDi",
+    "brand": null,
+    "series": "Golf",
+    "model": "1.6 TDi Comfortline",
+    "year": 2016,
+    "km": 125000,
+    "color": "Beyaz",
+    "price": 850000,
+    "currency": "TL",
+    "city": "Samsun",
+    "district": "Atakum",
+    "listingDate": "2026-11-18",
+    "transmission": null,
+    "fuel": null,
+    "source": "search",
+    "capturedAt": "2026-11-14T09:00:00.000Z"
+   },
+   "listing": {
+    "id": "1000000001",
+    "url": "https://www.sahibinden.com/ilan/vasita-otomobil-volkswagen-golf-ornek-temiz-1000000001/detay",
+    "title": "Sahibinden temiz Golf 1.6 TDi Comfortline",
+    "brand": "Volkswagen",
+    "series": "Golf",
+    "model": "1.6 TDi Comfortline",
+    "year": 2016,
+    "km": 125000,
+    "color": "Beyaz",
+    "price": 850000,
+    "currency": "TL",
+    "city": "Samsun",
+    "district": "Atakum",
+    "listingDate": "2026-11-18",
+    "transmission": "automatic",
+    "fuel": "diesel",
+    "source": "listing",
+    "capturedAt": "2026-11-16T09:00:00.000Z",
+    "engine": {
+     "volumeCc": 1598,
+     "powerHp": 105
+    },
+    "bodyType": "Hatchback 5 Kapı",
+    "drivetrain": "Önden Çekiş",
+    "vehicleCondition": "İkinci El",
+    "sellerType": "dealer",
+    "exchange": true,
+    "warranty": false,
+    "heavyDamage": false,
+    "tramerAmount": 12500,
+    "tramerRecords": [
+     {
+      "amount": 12500,
+      "note": "kaydı mevcuttur. Detaylı bilgi için [te"
+     }
+    ],
+    "tramerStatus": "amount",
+    "damage": [
+     {
+      "part": "Ön Kaput",
+      "status": "painted"
+     },
+     {
+      "part": "Sağ Ön Çamurluk",
+      "status": "painted"
+     },
+     {
+      "part": "Tavan",
+      "status": "local-painted"
+     },
+     {
+      "part": "Arka Tampon",
+      "status": "changed"
+     }
+    ],
+    "description": "Aracımız bakımlıdır, düzenli servis kayıtlıdır. Tramer 12.500 TL kaydı mevcuttur. Detaylı bilgi için [telefon] numarasını arayın.",
+    "attributes": {
+     "İlan No": "1000000001",
+     "İlan Tarihi": "18 Kasım 2026",
+     "Marka": "Volkswagen",
+     "Seri": "Golf",
+     "Model": "1.6 TDi Comfortline",
+     "Yıl": "2016",
+     "Yakıt": "Dizel",
+     "Vites": "Otomatik",
+     "Araç Durumu": "İkinci El",
+     "KM": "125.000",
+     "Kasa Tipi": "Hatchback 5 Kapı",
+     "Motor Gücü": "105 hp",
+     "Motor Hacmi": "1598 cm3",
+     "Çekiş": "Önden Çekiş",
+     "Renk": "Beyaz",
+     "Garanti": "Hayır",
+     "Ağır Hasar Kayıtlı": "Hayır",
+     "Plaka / Uyruk": "TR Plakalı",
+     "Kimden": "Galeriden",
+     "Takas": "Evet"
+    },
+    "warnings": [
+     "tramer açıklamadan çıkarıldı, satıcı beyanı, doğrulanmadı"
+    ]
+   },
+   "priceHistory": [
+    {
+     "price": 875000,
+     "currency": "TL",
+     "capturedAt": "2026-11-10T09:00:00.000Z"
+    },
+    {
+     "price": 850000,
+     "currency": "TL",
+     "capturedAt": "2026-11-14T09:00:00.000Z"
+    }
+   ]
+  },
+  "1000000002": {
+   "summary": {
+    "id": "1000000002",
+    "url": "https://www.sahibinden.com/ilan/vasita-otomobil-opel-astra-ornek-bakimli-1000000002/detay",
+    "title": "Bakımlı Astra otomatik",
+    "brand": null,
+    "series": "Astra",
+    "model": "1.4 T Excellence",
+    "year": 2018,
+    "km": 98500,
+    "color": "Gri",
+    "price": 780000,
+    "currency": "TL",
+    "city": "Samsun",
+    "district": "İlkadım",
+    "listingDate": "2026-11-17",
+    "transmission": null,
+    "fuel": null,
+    "source": "search",
+    "capturedAt": "2026-11-14T09:00:00.000Z"
+   },
+   "priceHistory": [
+    {
+     "price": 780000,
+     "currency": "TL",
+     "capturedAt": "2026-11-10T09:00:00.000Z"
+    }
+   ]
+  },
+  "1000000003": {
+   "summary": {
+    "id": "1000000003",
+    "url": "https://www.sahibinden.com/ilan/vasita-otomobil-ford-focus-ornek-1000000003/detay",
+    "title": "Focus Trend X düşük km",
+    "brand": null,
+    "series": "Focus",
+    "model": "1.5 TDCi Trend X",
+    "year": 2015,
+    "km": 149000,
+    "color": "Siyah",
+    "price": 15500,
+    "currency": "EUR",
+    "city": "Samsun",
+    "district": "Canik",
+    "listingDate": "2026-11-15",
+    "transmission": null,
+    "fuel": null,
+    "source": "search",
+    "capturedAt": "2026-11-14T09:00:00.000Z"
+   },
+   "priceHistory": [
+    {
+     "price": 15500,
+     "currency": "EUR",
+     "capturedAt": "2026-11-14T09:00:00.000Z"
+    }
+   ]
+  }
+ },
+ "importedFiles": {
+  "aaa111": {
+   "file": "search.synthetic.html",
+   "importedAt": "2026-11-10T09:00:00.000Z"
+  },
+  "bbb222": {
+   "file": "search2.synthetic.html",
+   "importedAt": "2026-11-14T09:00:00.000Z",
+   "parserVersion": 2
+  },
+  "ccc333": {
+   "file": "listing.synthetic.html",
+   "importedAt": "2026-11-16T09:00:00.000Z",
+   "parserVersion": 2
+  }
+ }
+}

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { MAX_FILE_BYTES, MAX_HTML_ARG, PARSER_VERSION } from '../config.js';
 import { appliedFilterNames, evaluateQuery, sortListings } from '../sahibinden/filter.js';
 import { detectPageType, parseListingPage, parseSearchPage } from '../sahibinden/parser.js';
+import { searchContextOf } from '../sahibinden/search-context.js';
 import type { Listing, ListingSummary, SearchQuery } from '../sahibinden/types.js';
 import { ListingSummarySchema } from '../sahibinden/types.js';
 import { buildSearchUrls } from '../sahibinden/url-builder.js';
@@ -28,6 +29,8 @@ export interface ImportProviderOptions {
   store: JsonStore;
   inboxDir: string;
   now: () => string;
+  /** Dosyanın yakalanma zamanı (mtime). Verilmezse/null dönerse `now`; sonuç `now`'a kırpılır. */
+  fileTime?: (file: string) => Date | null;
 }
 
 export class ImportProvider implements Provider {
@@ -35,11 +38,28 @@ export class ImportProvider implements Provider {
   private readonly store: JsonStore;
   private readonly inboxDir: string;
   private readonly now: () => string;
+  private readonly fileTime: ((file: string) => Date | null) | undefined;
 
   constructor(opts: ImportProviderOptions) {
     this.store = opts.store;
     this.inboxDir = opts.inboxDir;
     this.now = opts.now;
+    this.fileTime = opts.fileTime;
+  }
+
+  /** Dosya için yakalama zamanı: min(fileTime ?? now, now), ISO. */
+  private capturedAtOf(file: string): string {
+    const now = this.now();
+    if (!this.fileTime) return now;
+    let t: Date | null = null;
+    try {
+      t = this.fileTime(file);
+    } catch {
+      t = null;
+    }
+    if (!t || Number.isNaN(t.getTime())) return now;
+    const nowMs = Date.parse(now);
+    return Number.isNaN(nowMs) || t.getTime() <= nowMs ? t.toISOString() : now;
   }
 
   async stats() {
@@ -159,7 +179,7 @@ export class ImportProvider implements Provider {
       return;
     }
     const buf = fs.readFileSync(file);
-    this.processHtml(buf.toString('utf8'), file, file, sourceUrl, report, sha256(buf), cityHint, force);
+    this.processHtml(buf.toString('utf8'), file, file, sourceUrl, report, sha256(buf), cityHint, force, this.capturedAtOf(file));
   }
 
   private processHtml(
@@ -171,6 +191,7 @@ export class ImportProvider implements Provider {
     sha: string = sha256(html),
     cityHint?: string,
     force?: boolean,
+    capturedAt: string = this.now(),
   ): void {
     // Aynı içerik: yalnızca güncel parser sürümüyle okunmuşsa atlanır; eski sürümlüyse (veya force) yeniden parse edilir.
     const seen = this.store.getFile(sha);
@@ -188,19 +209,34 @@ export class ImportProvider implements Provider {
       return;
     }
     const ctx = {
-      capturedAt: this.now(),
+      capturedAt,
       ...(sourceUrl ? { sourceUrl } : {}),
       ...(cityHint ? { cityHint } : {}),
     };
     try {
       if (pageType === 'search') {
-        const { items, warnings } = parseSearchPage(html, ctx);
+        const { items, warnings, totalCount, pageUrls } = parseSearchPage(html, ctx);
         for (const w of warnings) log.warn('search parse warning', { file, warning: w });
         if (items.length === 0) {
           report.skipped.push({ file, reason: 'no-listings-found' });
           return;
         }
-        for (const it of items) this.store.upsertSummary(it);
+        const sc = searchContextOf(pageUrls);
+        const obsCtx = sc
+          ? { searchKey: sc.searchKey, ...(sc.filters.length > 0 ? { filters: sc.filters } : {}) }
+          : undefined;
+        for (const it of items) this.store.upsertSummary(it, obsCtx);
+        if (sc) {
+          this.store.recordSearch(sc.searchKey, {
+            path: sc.path,
+            category: sc.category,
+            filters: sc.filters,
+            sorting: sc.sorting,
+            filtersKnown: sc.filtersKnown,
+            totalCount,
+            at: capturedAt,
+          });
+        }
         report.imported.push({ file, pageType, count: items.length, ids: items.map((i) => i.id) });
       } else {
         const listing: Listing = parseListingPage(html, ctx);

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { browserConfig, inboxDir, storePath } from './config.js';
 import { CdpPageSource } from './browser/cdp-page-source.js';
@@ -14,6 +15,8 @@ const provider = new ImportProvider({
   store,
   inboxDir,
   now: () => new Date().toISOString(),
+  // Yakalama zamanı = sayfanın dosyaya kaydedildiği an (mtime); ImportProvider now ile kırpar.
+  fileTime: (f) => fs.statSync(f).mtime,
 });
 
 // Tarayıcı modu varsayılan KAPALI; yalnızca SAHIBINDEN_BROWSER_MODE=on iken canlı tool'lar kaydedilir.

@@ -148,6 +148,11 @@ export interface SearchParseResult {
   totalCount: number | null;
   pagination: SearchPagination | null;
   location: LocationContext;
+  /**
+   * Arama bağlamı için aday sayfa URL'leri (sorgu dizesi KORUNUR), tekil, sırayla:
+   * "saved from url" yorumu, ctx.sourceUrl, og:url, canonical, ul.pageNaviButtons bağlantıları.
+   */
+  pageUrls: string[];
 }
 
 /** URL'den şehir: `address_city=<plaka>` sorgusu ya da son yol parçası şehir slug'ı (/opel-astra/samsun). */
@@ -263,6 +268,32 @@ function extractPagination($: CheerioAPI): SearchPagination | null {
   return { offsets, pageSize };
 }
 
+/** Aday URL'ler; extractPageUrl'den farklı olarak sorgu dizesini korur (filtre kanıtı için). */
+function collectPageUrls($: CheerioAPI, html: string, ctx: ParseContext): string[] {
+  const out: string[] = [];
+  const add = (raw: string | undefined | null, base: string = SITE): void => {
+    const r = raw?.trim();
+    if (!r) return;
+    let u: URL;
+    try {
+      u = new URL(r, base);
+    } catch {
+      return;
+    }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+    u.hash = '';
+    if (!out.includes(u.href)) out.push(u.href);
+  };
+  const saved = html.match(/<!--\s*saved from url=\(\d+\)(\S+?)\s*-->/i);
+  add(saved?.[1]?.replace(/&amp;/g, '&'));
+  add(ctx.sourceUrl);
+  add($('meta[property="og:url"]').attr('content'));
+  add($('link[rel="canonical"]').attr('href'));
+  const base = out[0] ?? SITE;
+  $('ul.pageNaviButtons a[href]').each((_, a) => add($(a).attr('href'), base));
+  return out;
+}
+
 export function parseSearchPage(html: string, ctx: ParseContext): SearchParseResult {
   const $ = load(html);
   const warnings: string[] = [];
@@ -360,7 +391,14 @@ export function parseSearchPage(html: string, ctx: ParseContext): SearchParseRes
   });
 
   if (items.length === 0) warnings.push('arama sayfasında ilan satırı bulunamadı');
-  return { items, warnings, totalCount: extractTotalCount($), pagination: extractPagination($), location };
+  return {
+    items,
+    warnings,
+    totalCount: extractTotalCount($),
+    pagination: extractPagination($),
+    location,
+    pageUrls: collectPageUrls($, html, ctx),
+  };
 }
 
 // ---------- ilan detay sayfası ----------
