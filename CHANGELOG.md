@@ -37,6 +37,9 @@ First version. Not yet published.
 - Vitest suite with synthetic fixtures and a stdio end-to-end smoke script (`npm run smoke`).
 - README, MIT license and this changelog.
 
+### Fixed
+- Listing detail location is now read from the verified `Adres Breadcrumb` links (province / district / neighborhood), falling back to `#gmap` `data-*` attributes; the "location not verified" caveat is gone (verified 2026-11-18). `neighborhood` is also filled on detail pages.
+
 ### Known limitations
 - URL filter parameters are partly unverified against the live site (`verified: false` in `src/sahibinden/url-schema.ts`).
 - Parser validated only with synthetic fixtures so far.

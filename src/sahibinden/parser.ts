@@ -467,6 +467,45 @@ function extractPriceText($: CheerioAPI): string | null {
   return t || null;
 }
 
+interface DetailLocation {
+  city: string | null;
+  district: string | null;
+  neighborhood: string | null;
+}
+
+/**
+ * Detay konumu (doğrulandı 2026-11-18): önce `a[data-click-label^="Adres Breadcrumb |"]`
+ * bağlantıları (ilk = il, ikinci = ilçe, SON = mahalle; ikiden azsa eldekiler), sonra
+ * `#gmap` data-* öznitelikleri, en son eski `.classifiedInfo h2 a` (sentetik yedek).
+ */
+function extractDetailLocation($: CheerioAPI): DetailLocation | null {
+  const crumbs = $('a[data-click-label^="Adres Breadcrumb |"]')
+    .toArray()
+    .map((a) => clean($(a).text()))
+    .filter(Boolean);
+  if (crumbs.length > 0) {
+    return {
+      city: crumbs[0] ?? null,
+      district: crumbs[1] ?? null,
+      neighborhood: crumbs.length >= 3 ? crumbs[crumbs.length - 1] ?? null : null,
+    };
+  }
+  const gmap = $('#gmap').first();
+  const town = clean(gmap.attr('data-town-name') ?? '');
+  const quarter = clean(gmap.attr('data-quarter-name') ?? '');
+  const cityCode = clean(gmap.attr('data-city') ?? '');
+  const cityName = cityCode ? resolveCity(cityCode)?.name ?? null : null;
+  if (cityName || town || quarter) {
+    return { city: cityName, district: town || null, neighborhood: quarter || null };
+  }
+  const legacy = $('.classifiedInfo h2 a')
+    .toArray()
+    .map((a) => clean($(a).text()))
+    .filter(Boolean);
+  if (legacy.length > 0) return { city: legacy[0] ?? null, district: legacy[1] ?? null, neighborhood: null };
+  return null;
+}
+
 export function parseListingPage(html: string, ctx: ParseContext): Listing {
   const $ = load(html);
   const warnings: string[] = [];
@@ -492,12 +531,8 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
   if (year === null) warnings.push('yıl okunamadı');
   if (km === null) warnings.push('km okunamadı');
 
-  const locs = $('.classifiedInfo h2 a')
-    .toArray()
-    .map((a) => clean($(a).text()))
-    .filter(Boolean);
-
-  if (locs.length === 0) warnings.push('konum okunamadı (detay sayfası konum seçicisi doğrulanmadı)');
+  const place = extractDetailLocation($);
+  if (!place) warnings.push('konum okunamadı (adres breadcrumb ve harita öznitelikleri bulunamadı)');
 
   const volumeCc = parseRangeOrNumber(attr('motor hacmi'));
   const powerHp = parseRangeOrNumber(attr('motor gucu'));
@@ -530,8 +565,9 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
     color: attr('renk'),
     price,
     currency: parseCurrency(priceText),
-    city: locs[0] ?? null,
-    district: locs[1] ?? null,
+    city: place?.city ?? null,
+    district: place?.district ?? null,
+    ...(place?.neighborhood != null ? { neighborhood: place.neighborhood } : {}),
     listingDate: parseTrDate(attr('ilan tarihi')),
     transmission: mapTransmission(attr('vites')),
     fuel: mapFuel(attr('yakit / motor tipi') ?? attr('yakit')),

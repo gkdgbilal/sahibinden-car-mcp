@@ -373,8 +373,42 @@ describe('gerçek yapıyı taklit eden fixture: ilan', () => {
     expect(json).not.toContain('Favori Listenize');
     expect(Object.keys(l.attributes)).not.toContain('Cep');
   });
-  it('konum doğrulanmadı: null + uyarı', () => {
-    expect(l.city).toBeNull();
-    expect(l.warnings.some((w) => w.includes('konum'))).toBe(true);
+  it('konum breadcrumb bağlantılarından: il/ilçe/mahalle, uyarı yok', () => {
+    expect(l.city).toBe('Samsun');
+    expect(l.district).toBe('Atakum');
+    expect(l.neighborhood).toBe('Örnek Mh.');
+    expect(l.warnings.some((w) => w.includes('konum'))).toBe(false);
+  });
+  it('breadcrumb arasında ek halka varsa: ilk il, ikinci ilçe, son mahalle', () => {
+    const extra = html.replace(
+      '<span>/</span>\n        <a href="https://www.sahibinden.com/ornek-samsun-atakum-ornek',
+      '<span>/</span> <a data-click-label="Adres Breadcrumb | Örnek Semt"> Örnek Semt</a> <span>/</span>\n        <a href="https://www.sahibinden.com/ornek-samsun-atakum-ornek',
+    );
+    expect(extra).not.toBe(html);
+    expect(parseListingPage(extra, ctx)).toMatchObject({ city: 'Samsun', district: 'Atakum', neighborhood: 'Örnek Mh.' });
+  });
+  it('breadcrumb tek halkaysa yalnızca il', () => {
+    const one = html.replace(/<a [^>]*Adres Breadcrumb \| (Atakum|Örnek Mh\.)"[^>]*>[^<]*<\/a>/g, '');
+    const l2 = parseListingPage(one, ctx);
+    expect(l2.city).toBe('Samsun');
+    expect(l2.district).toBeNull();
+    expect(l2.warnings.some((w) => w.includes('konum'))).toBe(false);
+  });
+  it('breadcrumb yoksa gmap data-* yedeği (plaka kodu -> il adı)', () => {
+    const noCrumb = html.replace(/<a [^>]*Adres Breadcrumb[^>]*>[^<]*<\/a>/g, '');
+    const l2 = parseListingPage(noCrumb, ctx);
+    expect(l2).toMatchObject({ city: 'Samsun', district: 'Atakum', neighborhood: 'Örnek Mh.' });
+    expect(l2.warnings.some((w) => w.includes('konum'))).toBe(false);
+    expect(() => ListingSchema.parse(l2)).not.toThrow();
+  });
+  it('breadcrumb ve gmap yoksa: null + uyarı', () => {
+    const none = html
+      .replace(/<a [^>]*Adres Breadcrumb[^>]*>[^<]*<\/a>/g, '')
+      .replace(/<div id="gmap"[^>]*><\/div>/, '');
+    const l2 = parseListingPage(none, ctx);
+    expect(l2.city).toBeNull();
+    expect(l2.district).toBeNull();
+    expect(l2.neighborhood).toBeUndefined();
+    expect(l2.warnings.some((w) => w.includes('konum'))).toBe(true);
   });
 });
