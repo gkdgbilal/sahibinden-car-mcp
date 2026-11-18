@@ -41,6 +41,12 @@ describe('tool akışı', () => {
     const s = searchCarsOutput.parse(await searchCarsHandler(searchCarsInput.parse({ city: 'Samsun', priceMax: 800000 }), deps));
     expect(s.results.map((r) => r.price)).toEqual([710000, 780000]);
     expect(s.totalMatched).toBe(2);
+    expect(s).toMatchObject({ appliedFilters: ['city', 'priceMax'], urlOnlyFilters: [], excludedOtherCurrency: 0, excludedUnknown: 0 });
+    const combo = searchCarsOutput.parse(
+      await searchCarsHandler(searchCarsInput.parse({ city: 'Samsun', fuel: 'diesel', bodyType: 'hatchback-5-door', unknown: 'exclude' }), deps),
+    );
+    expect(combo.results.map((r) => r.id)).toEqual(['1000000001']);
+    expect(combo.excludedUnknown).toBe(2);
     const all = searchCarsOutput.parse(await searchCarsHandler(searchCarsInput.parse({ models: ['golf'], sort: 'price_desc' }), deps));
     expect(all.results.map((r) => r.id)).toEqual(['1000000001']);
 

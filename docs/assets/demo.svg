@@ -25,9 +25,9 @@
   <text x="24" y="166" xml:space="preserve"><tspan class="dim">  </tspan><tspan class="txt">real-shape.search.html        </tspan><tspan class="dim">search   </tspan><tspan class="txt">3 listings</tspan></text>
   <text x="24" y="186" xml:space="preserve"><tspan class="dim">  </tspan><tspan class="dim">skipped: 0   store size: 6</tspan></text>
   
-  <text x="24" y="226" xml:space="preserve"><tspan class="prompt">$ </tspan><tspan class="cmd">search_cars </tspan><tspan class="dim">city=Samsun priceMax=600000 yearMin=2009 yearMax=2012</tspan></text>
-  <text x="24" y="246" xml:space="preserve"><tspan class="dim">              kmMax=230000 sort=km_asc</tspan></text>
-  <text x="24" y="266" xml:space="preserve"><tspan class="dim">  </tspan><tspan class="head">3 of 6 listings match</tspan></text>
+  <text x="24" y="226" xml:space="preserve"><tspan class="prompt">$ </tspan><tspan class="cmd">search_cars </tspan><tspan class="dim">city=Samsun priceMax=600000 yearMin=2009 kmMax=230000</tspan></text>
+  <text x="24" y="246" xml:space="preserve"><tspan class="dim">              sort=km_asc</tspan></text>
+  <text x="24" y="266" xml:space="preserve"><tspan class="dim">  </tspan><tspan class="head">3 of 6 listings match</tspan><tspan class="dim">   (excluded: 1 other currency, 0 unknown field)</tspan></text>
   <text x="24" y="286" xml:space="preserve"><tspan class="head">  ID          Title                   Year         Km        Price  Location</tspan></text>
   <text x="24" y="306" xml:space="preserve"><tspan class="txt">  1000000202  Örnek başlık yedi       2012    120.000   560.000 TL  Samsun / Atakum</tspan></text>
   <text x="24" y="326" xml:space="preserve"><tspan class="txt">  1000000201  Örnek başlık altı       2010    180.000   480.000 TL  Samsun / İlkadım</tspan></text>

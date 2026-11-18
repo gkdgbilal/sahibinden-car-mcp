@@ -76,6 +76,10 @@ describe('buildSearchUrls', () => {
     expect(params({ unpaintedOnly: true }).unpaintedParts).toBe('true');
     expect(params({ noReplacedParts: true }).unchangingTracks).toBe('true');
     expect(params({ unpaintedOnly: false })).not.toHaveProperty('unpaintedParts');
+    expect(params({ noHeavyDamage: true }).a116445).toBe('1263354');
+    expect(params({ noHeavyDamage: false })).not.toHaveProperty('a116445');
+    expect(params({ warranty: true }).a4054).toBe('72906');
+    expect(params({ warranty: false }).a4054).toBe('72907');
     expect(params({ priceCurrency: 'USD' }).price_currency).toBe('2');
     expect(params({ priceCurrency: 'EUR' }).price_currency).toBe('3');
     expect(params({ priceCurrency: 'GBP' }).price_currency).toBe('4');

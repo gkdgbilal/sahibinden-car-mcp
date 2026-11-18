@@ -39,8 +39,9 @@ describe('matchesQuery', () => {
     expect(matchesQuery(mk({ brand: null }), q({ brand: 'Opel' })).unknownFields).toEqual(['brand']);
     expect(matchesQuery(mk(), q({ brand: 'Opel' })).match).toBe(false);
   });
-  it('TL dışı fiyat karşılaştırılmaz', () => {
-    expect(matchesQuery(mk({ currency: 'EUR', price: 20000 }), q({ priceMin: 700000 })).unknownFields).toEqual(['price']);
+  it('TL dışı ilan TL fiyat filtresinde elenir (dönüşüm yok)', () => {
+    const r = matchesQuery(mk({ currency: 'EUR', price: 20000 }), q({ priceMax: 900000 }));
+    expect(r).toEqual({ match: false, unknownFields: [] });
   });
 });
 

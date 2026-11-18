@@ -87,7 +87,7 @@ try {
   send({ jsonrpc: '2.0', method: 'notifications/initialized' });
 
   const imported = await call('import_listing_html', {});
-  const query = { city: 'Samsun', priceMax: 600000, yearMin: 2009, yearMax: 2012, kmMax: 230000, sort: 'km_asc' };
+  const query = { city: 'Samsun', priceMax: 600000, yearMin: 2009, kmMax: 230000, sort: 'km_asc' };
   const search = await call('search_cars', query);
   const detailId = imported.imported.find((f) => f.pageType === 'listing')?.ids?.[0];
   if (!detailId) die('listing sayfası içe aktarılamadı');
@@ -121,7 +121,8 @@ try {
   }
   line(['$ ', 'prompt'], ['search_cars ', 'cmd'], [argLines[0], 'dim']);
   for (const extra of argLines.slice(1)) line([' '.repeat(14) + extra, 'dim']);
-  line(['  ', 'dim'], [`${search.totalMatched} of ${search.storeSize} listings match`, 'head']);
+  line(['  ', 'dim'], [`${search.totalMatched} of ${search.storeSize} listings match`, 'head'],
+    [`   (excluded: ${search.excludedOtherCurrency} other currency, ${search.excludedUnknown} unknown field)`, 'dim']);
   const sHead = '  ' + pad('ID', 12) + pad('Title', 24) + pad('Year', 6) + lpad('Km', 9) + lpad('Price', 13) + '  ' + 'Location';
   line([sHead, 'head']);
   for (const r of search.results) {

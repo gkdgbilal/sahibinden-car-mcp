@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 
 export const homeDir =
   process.env.SAHIBINDEN_MCP_HOME ?? path.join(os.homedir(), '.sahibinden-car-mcp');

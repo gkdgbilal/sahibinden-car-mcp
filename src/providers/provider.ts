@@ -4,6 +4,14 @@ export interface SearchOutcome {
   results: (ListingSummary & { unknownFields: string[] })[];
   totalMatched: number;
   storeSize: number;
+  /** Yerel mağazada uygulanan filtre adları. */
+  appliedFilters: string[];
+  /** Yalnızca sahibinden URL'sine yansıyıp yerelde uygulanmayan filtreler (hedef: boş). */
+  urlOnlyFilters: string[];
+  /** Fiyat filtresi nedeniyle para birimi uyuşmadığı için elenen ilan sayısı. */
+  excludedOtherCurrency: number;
+  /** unknown='exclude' ile alanı bilinmediği için elenen ilan sayısı. */
+  excludedUnknown: number;
   searchUrls: { label: string; url: string; note?: string }[];
   hint?: string;
 }

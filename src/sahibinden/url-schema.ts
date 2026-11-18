@@ -31,6 +31,8 @@ export const PARAMS = {
   listedWithin: { key: 'date', verified: true },
   unpainted: { key: 'unpaintedParts', verified: true },
   noReplacedParts: { key: 'unchangingTracks', verified: true },
+  heavyDamage: { key: 'a116445', verified: true }, // Ağır Hasar Kayıtlı: 1263353 Evet, 1263354 Hayır
+  warranty: { key: 'a4054', verified: true }, // Servis Garantisi: 72906 Evet, 72907 Hayır
   sorting: { key: 'sorting', verified: true },
   // Parametre doğrulandı; plaka kodları yalnızca CITIES içinde işaretli şehirler için doğrulandı.
   city: { key: 'address_city', verified: true },
@@ -84,11 +86,44 @@ export const ENGINE_VOLUME_IDS: Record<EngineVolume, string> = {
   'upto-1300': '51977', '1301-1600': '1118042', '1601-1800': '51979', '1801-2000': '51980', '2001-2500': '51981',
 };
 
+export interface NumericRange {
+  /** Alt sınır (dahil değil); "upto-N" için -Infinity. */
+  lo: number;
+  /** Üst sınır (dahil). */
+  hi: number;
+}
+
+/** "upto-1300" -> (-inf,1300]; "1301-1600" -> (1300,1600]. Etiketler yukarıdaki kimlik tablolarının anahtarlarıdır. */
+function rangesFromKeys<K extends string>(keys: readonly K[]): Record<K, NumericRange> {
+  const out = {} as Record<K, NumericRange>;
+  for (const k of keys) {
+    const up = /^upto-(\d+)$/.exec(k);
+    const mid = /^(\d+)-(\d+)$/.exec(k);
+    if (up) out[k] = { lo: -Infinity, hi: Number(up[1]) };
+    else if (mid) out[k] = { lo: Number(mid[1]) - 1, hi: Number(mid[2]) };
+    else throw new Error(`Aralık anahtarı tanınmadı: ${k}`);
+  }
+  return out;
+}
+
+/** Yerel filtre için sayısal aralıklar (a2320, hp). */
+export const ENGINE_POWER_RANGES = rangesFromKeys(Object.keys(ENGINE_POWER_IDS) as EnginePower[]);
+/** Yerel filtre için sayısal aralıklar (a1864, cc). */
+export const ENGINE_VOLUME_RANGES = rangesFromKeys(Object.keys(ENGINE_VOLUME_IDS) as EngineVolume[]);
+
+/** listedWithin -> gün sayısı (yerel filtre). */
+export const LISTED_WITHIN_DAYS: Record<ListedWithin, number> = {
+  '1day': 1, '3days': 3, '7days': 7, '15days': 15, '30days': 30,
+};
+
 export const DRIVETRAIN_IDS: Record<Drivetrain, string> = { fwd: '136269', rwd: '136270', '4wd': '136271', awd: '136272' };
 
 export const LISTED_WITHIN_VALUES: Record<ListedWithin, string> = {
   '1day': '1day', '3days': '3days', '7days': '7days', '15days': '15days', '30days': '30days',
 };
+
+export const HEAVY_DAMAGE_IDS = { yes: '1263353', no: '1263354' } as const;
+export const WARRANTY_IDS = { yes: '72906', no: '72907' } as const;
 
 export const SORTING_VALUES: Record<Sort, string> = {
   price_asc: 'price_asc', price_desc: 'price_desc',

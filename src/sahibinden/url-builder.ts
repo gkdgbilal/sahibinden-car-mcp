@@ -2,7 +2,7 @@ import { foldTr } from './normalize.js';
 import type { SearchQuery } from './types.js';
 import {
   BASE, BODY_TYPE_IDS, COLOR_IDS, DRIVETRAIN_IDS, ENGINE_POWER_IDS, ENGINE_VOLUME_IDS, FUEL_IDS,
-  HYBRID_VARIANT_IDS, LISTED_WITHIN_VALUES, PAGE_SIZE, PARAMS, PRICE_CURRENCY_IDS, SELLER_TYPE_IDS,
+  HEAVY_DAMAGE_IDS, HYBRID_VARIANT_IDS, WARRANTY_IDS, LISTED_WITHIN_VALUES, PAGE_SIZE, PARAMS, PRICE_CURRENCY_IDS, SELLER_TYPE_IDS,
   SORTING_VALUES, TRANSMISSION_IDS, VEHICLE_CONDITION_IDS, resolveCity,
 } from './url-schema.js';
 
@@ -81,6 +81,8 @@ export function buildSearchUrls(q: SearchQuery): SearchUrl[] {
   if (q.listedWithin) set(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
   if (q.unpaintedOnly) set(PARAMS.unpainted, 'true');
   if (q.noReplacedParts) set(PARAMS.noReplacedParts, 'true');
+  if (q.noHeavyDamage) set(PARAMS.heavyDamage, HEAVY_DAMAGE_IDS.no);
+  if (q.warranty !== undefined) set(PARAMS.warranty, q.warranty ? WARRANTY_IDS.yes : WARRANTY_IDS.no);
   set(PARAMS.sorting, SORTING_VALUES[q.sort]);
   if (q.page && q.page > 1) set(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
 

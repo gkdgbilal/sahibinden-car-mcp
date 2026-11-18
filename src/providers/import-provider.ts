@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { MAX_FILE_BYTES, MAX_HTML_ARG } from '../config.js';
-import { matchesQuery, sortListings } from '../sahibinden/filter.js';
+import { appliedFilterNames, evaluateQuery, sortListings } from '../sahibinden/filter.js';
 import { detectPageType, parseListingPage, parseSearchPage } from '../sahibinden/parser.js';
 import type { Listing, ListingSummary, SearchQuery } from '../sahibinden/types.js';
 import { ListingSummarySchema } from '../sahibinden/types.js';
@@ -48,17 +48,27 @@ export class ImportProvider implements Provider {
 
   async search(q: SearchQuery): Promise<SearchOutcome> {
     const matched: (ListingSummary & { unknownFields: string[] })[] = [];
+    let excludedOtherCurrency = 0;
+    let excludedUnknown = 0;
+    const now = new Date(this.now());
     for (const { entry } of this.store.all()) {
       const s = summaryOf(entry);
       if (!s) continue;
-      const { match, unknownFields } = matchesQuery(s, q);
-      if (match) matched.push({ ...s, unknownFields });
+      // Detay alanları (kasa, hasar, motor ...) yalnızca tam Listing kaydında vardır.
+      const ev = evaluateQuery(entry.listing ?? s, q, { now });
+      if (ev.excludedOtherCurrency) excludedOtherCurrency++;
+      if (ev.excludedUnknown) excludedUnknown++;
+      if (ev.match) matched.push({ ...s, unknownFields: ev.unknownFields });
     }
     const sorted = sortListings(matched, q.sort);
     const outcome: SearchOutcome = {
       results: sorted.slice(0, q.limit),
       totalMatched: sorted.length,
       storeSize: this.store.size(),
+      appliedFilters: appliedFilterNames(q),
+      urlOnlyFilters: [],
+      excludedOtherCurrency,
+      excludedUnknown,
       searchUrls: buildSearchUrls(q),
     };
     if (this.store.size() === 0 || sorted.length === 0) {

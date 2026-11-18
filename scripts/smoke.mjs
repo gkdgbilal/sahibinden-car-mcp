@@ -91,6 +91,16 @@ try {
   assert(search.result?.structuredContent?.results?.length === 3, 'search_cars results != 3');
   assert(search.result.structuredContent.searchUrls.length >= 1, 'searchUrls boş');
 
+  // Birleşik filtre: yalnızca detayı içe aktarılmış beyaz/5 kapı/105 hp Golf kalır (diğer ikisi rengi uyuşmadığı için elenir).
+  const combo = await call('search_cars', {
+    city: 'Samsun', priceMax: 900000, bodyType: 'hatchback-5-door', fuel: 'diesel', enginePower: '101-125',
+    color: 'white', unknown: 'exclude',
+  });
+  const co = combo.result?.structuredContent;
+  assert(co?.results?.length === 1 && co.results[0].id === '1000000001', 'birleşik filtre sonucu beklenenden farklı');
+  assert(co.excludedUnknown === 0 && co.urlOnlyFilters.length === 0 && co.appliedFilters.includes('enginePower'), 'birleşik filtre sayaçları yanlış');
+  assert(co.searchUrls[0].url.includes('a2320=74345') && co.searchUrls[0].url.includes('a3=33611'), 'birleşik filtre URL\'ye yansımadı');
+
   const cmp = await call('compare_cars', { refs: ['1000000001', '1000000002', '9999999999'] });
   const cmpOut = cmp.result?.structuredContent;
   assert(cmpOut?.rows?.length === 2 && cmpOut.missing?.[0] === '9999999999', 'compare_cars sonucu beklenenden farklı');

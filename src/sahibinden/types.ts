@@ -6,7 +6,7 @@ export const FuelSchema = z.enum(['gasoline', 'diesel', 'lpg', 'hybrid', 'electr
 export const SellerTypeSchema = z.enum(['owner', 'dealer', 'authorized-dealer']);
 export const PartStatusSchema = z.enum(['original', 'painted', 'local-painted', 'changed']);
 
-// Yalnızca sahibinden arama URL'sine uygulanan filtre değerleri (doğrulanmış kimlikler: url-schema.ts).
+// Hem sahibinden arama URL'sine hem yerel mağaza filtresine uygulanan değerler (doğrulanmış kimlikler: url-schema.ts).
 export const BodyTypeSchema = z.enum([
   'cabrio', 'coupe', 'coupe-4-door', 'hatchback-3-door', 'hatchback-5-door', 'sedan', 'station-wagon', 'mpv', 'roadster',
 ]);
@@ -20,6 +20,7 @@ export const EnginePowerSchema = z.enum([
 export const EngineVolumeSchema = z.enum(['upto-1300', '1301-1600', '1601-1800', '1801-2000', '2001-2500']);
 export const DrivetrainSchema = z.enum(['fwd', 'rwd', '4wd', 'awd']);
 export const ListedWithinSchema = z.enum(['1day', '3days', '7days', '15days', '30days']);
+export const UnknownPolicySchema = z.enum(['include', 'exclude']);
 export const PriceCurrencySchema = z.enum(['TL', 'USD', 'EUR', 'GBP']);
 export const SortSchema = z.enum([
   'price_asc', 'price_desc', 'year_desc', 'year_asc', 'km_asc', 'km_desc', 'date_desc', 'date_asc',
@@ -37,6 +38,7 @@ export type EnginePower = z.infer<typeof EnginePowerSchema>;
 export type EngineVolume = z.infer<typeof EngineVolumeSchema>;
 export type Drivetrain = z.infer<typeof DrivetrainSchema>;
 export type ListedWithin = z.infer<typeof ListedWithinSchema>;
+export type UnknownPolicy = z.infer<typeof UnknownPolicySchema>;
 export type PriceCurrency = z.infer<typeof PriceCurrencySchema>;
 export type Sort = z.infer<typeof SortSchema>;
 
@@ -98,7 +100,7 @@ export const SearchQuerySchema = z.object({
   yearMax: z.number().int().min(1950).max(2100).optional(),
   kmMin: z.number().int().nonnegative().optional(),
   kmMax: z.number().int().nonnegative().optional(),
-  // Aşağıdaki alanlar yalnızca sahibinden arama URL'sine uygulanır (yerel mağaza filtresi uygulanmaz).
+  // priceMin/priceMax bu para birimi cinsindendir (varsayılan TL); başka para birimli ilan fiyat filtresiyle elenir.
   priceCurrency: PriceCurrencySchema.optional(),
   sellerType: SellerTypeSchema.optional(),
   bodyType: BodyTypeSchema.optional(),
@@ -111,10 +113,17 @@ export const SearchQuerySchema = z.object({
   listedWithin: ListedWithinSchema.optional(),
   unpaintedOnly: z.boolean().optional(),
   noReplacedParts: z.boolean().optional(),
+  /** true: yalnızca ağır hasar kaydı olmayanlar (a116445=Hayır). false = filtre yok. */
+  noHeavyDamage: z.boolean().optional(),
+  /** true: servis garantisi olanlar, false: olmayanlar (a4054). */
+  warranty: z.boolean().optional(),
   page: z.number().int().min(1).max(50).optional(),
   sort: SortSchema.default('price_asc'),
   limit: z.number().int().min(1).max(100).default(20),
-  includeUnknown: z.boolean().default(true),
+  /** 'include' (varsayılan): alanı bilinmeyen ilan unknownFields ile işaretli döner; 'exclude': elenir. */
+  unknown: UnknownPolicySchema.optional(),
+  /** Eski ad; `unknown` verilmediyse onun yerine geçer (false = 'exclude'). */
+  includeUnknown: z.boolean().optional(),
 });
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
 

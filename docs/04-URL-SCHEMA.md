@@ -23,6 +23,7 @@ Kaynak: kullanıcının kendi Chrome oturumunda gerçek sahibinden sayfasından,
 | `unpaintedParts` | Boyasız | `true` |
 | `unchangingTracks` | Değişensiz | `true` |
 
+
 ### Kimlikli filtreler
 | Parametre | Alan | Değerler |
 |---|---|---|
@@ -35,6 +36,8 @@ Kaynak: kullanıcının kendi Chrome oturumunda gerçek sahibinden sayfasından,
 | `a2320` | Motor gücü aralığı (`a17` yakıt kimlikleriyle karıştırılmamalı) | 1096156 ≤50 hp, 1096158 51-75, 74344 76-100, 74345 101-125, 74346 126-150, 74347 151-175, 74348 176-200, 74349 201-225 |
 | `a1864` | Motor hacmi aralığı | 51977 ≤1300 cc, 1118042 1301-1600, 51979 1601-1800, 51980 1801-2000, 51981 2001-2500 |
 | `a9213` | Çekiş | 136269 Önden, 136270 Arkadan, 136271 4WD, 136272 AWD |
+| `a116445` | Ağır Hasar Kayıtlı | 1263353 Evet, 1263354 Hayır (araç: `noHeavyDamage` -> 1263354) |
+| `a4054` | Servis Garantisi | 72906 Evet, 72907 Hayır (araç: `warranty`) |
 
 ### Şehir
 - `address_city={plaka kodu}`; **yalnızca 55 (Samsun) ve 34 (İstanbul) doğrulandı** (site yola yönlendirir, sonuçlar o şehirden).
@@ -52,7 +55,7 @@ Kaynak: kullanıcının kendi Chrome oturumunda gerçek sahibinden sayfasından,
 - Motor segmenti yolu (`-1.3-cdti`) yalnızca model metnine yazılırsa üretilir; ayrı bir filtre alanı yoktur.
 
 ## Araç alan eşlemesi (`search_cars`)
-`transmission`->a6, `fuel`->a17, `sellerType`->a706, `bodyType`->a8, `color`->a3, `vehicleCondition`->a113987, `enginePower`->a2320, `engineVolume`->a1864, `drivetrain`->a9213, `exchange`->exchange, `listedWithin`->date, `unpaintedOnly`->unpaintedParts, `noReplacedParts`->unchangingTracks, `priceCurrency`->price_currency, `city`->address_city, `page`->pagingOffset, `sort`->sorting. Bu alanlardan yalnızca şehir/vites/yakıt (ve fiyat/yıl/km/marka/model) yerel mağaza filtresinde de uygulanır; diğerleri yalnızca üretilen URL'ye yansır.
+`transmission`->a6, `fuel`->a17, `sellerType`->a706, `bodyType`->a8, `color`->a3, `vehicleCondition`->a113987, `enginePower`->a2320, `engineVolume`->a1864, `drivetrain`->a9213, `exchange`->exchange, `listedWithin`->date, `unpaintedOnly`->unpaintedParts, `noReplacedParts`->unchangingTracks, `noHeavyDamage`->a116445, `warranty`->a4054, `priceCurrency`->price_currency, `city`->address_city, `page`->pagingOffset, `sort`->sorting. Bu alanların hepsi 0.1.1'den beri yerel mağaza filtresinde de uygulanır (tablo ve kurallar: `docs/05-FILTER-AUDIT.md`); `page` yalnızca URL'ye yansır.
 
 ## Arama sonucundaki konum hücresi (parser)
 `searchResultsLocationValue` biçimi sayfa bağlamına göre değişir:

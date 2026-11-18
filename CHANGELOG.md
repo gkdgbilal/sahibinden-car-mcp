@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-18
+
+### Fixed
+- `search_cars` price filter now respects currency: `priceMin`/`priceMax` apply in `priceCurrency` (default TL) and listings in another currency are excluded instead of slipping through as "unknown" (no conversion).
+- The new filters (color, body type, seller type, vehicle condition, engine power, engine volume, drivetrain, trade-in, listed within, unpainted, no replaced parts, price currency) no longer only shape the URL; they now filter the local store too. Detail fields are read from the full listing record when it exists.
+
+### Added
+- `noHeavyDamage` (URL `a116445=1263354`) and `warranty` (URL `a4054`) filters, verified on the live site, applied locally and in the URL.
+- `unknown: 'include' | 'exclude'` policy (`includeUnknown: false` still works as an alias).
+- `search_cars` output: `appliedFilters`, `urlOnlyFilters` (empty), `excludedOtherCurrency`, `excludedUnknown`.
+- Numeric engine power/volume ranges derived from the URL ID labels; `listedWithin` day check with an injectable clock.
+- `docs/05-FILTER-AUDIT.md` (per-filter local/URL audit); tests for every filter, currency, unknown policy and combined filters; combined-filter smoke check.
+- README demo no longer needs the year-range workaround (the EUR listing is now excluded by the price filter).
+
+### Removed
+- Known limitation "new filters only shape the URL".
+
 ## [0.1.0] - 2026-11-18
 
 First public release.

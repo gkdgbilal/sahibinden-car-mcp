@@ -136,3 +136,52 @@ describe('ImportProvider.search / getListing', () => {
     expect(await provider.getListing('9999999999')).toEqual({ listing: null, summary: null });
   });
 });
+
+describe('ImportProvider.search: yerel filtreler ve sayaçlar', () => {
+  const q = (o: object) => SearchQuerySchema.parse(o);
+  let store: JsonStore;
+  beforeEach(async () => {
+    store = new JsonStore(path.join(dir, 'store2.json'));
+    provider = new ImportProvider({ store, inboxDir: inbox, now: () => NOW });
+    copy('search.synthetic.html');
+    copy('listing.synthetic.html');
+    await provider.ingest({});
+    store.upsertSummary({
+      id: '1000000009', url: 'https://www.sahibinden.com/ilan/x-1000000009/detay', title: 'Euro Golf', brand: null,
+      series: null, model: null, year: 2016, km: 90000, color: 'Beyaz', price: 7500, currency: 'EUR', city: 'Samsun',
+      district: null, listingDate: '2026-11-18', transmission: null, fuel: null, source: 'search', capturedAt: NOW,
+    });
+  });
+
+  it('EUR ilan TL fiyat filtresinde elenir ve sayılır; priceCurrency=EUR ile girer', async () => {
+    const tl = await provider.search(q({ priceMax: 900000 }));
+    expect(tl.results.map((r) => r.id).sort()).toEqual(['1000000001', '1000000002', '1000000003']);
+    expect(tl.excludedOtherCurrency).toBe(1);
+    expect(tl.appliedFilters).toEqual(['priceMax']);
+    expect(tl.urlOnlyFilters).toEqual([]);
+    const eur = await provider.search(q({ priceMax: 8000, priceCurrency: 'EUR' }));
+    expect(eur.results.map((r) => r.id)).toEqual(['1000000009']);
+    expect(eur.excludedOtherCurrency).toBe(3);
+    expect((await provider.search(q({}))).excludedOtherCurrency).toBe(0);
+  });
+
+  it('detay filtresi yalnızca detayı olan ilanı eler; diğerleri unknownFields ile gelir veya exclude ile elenir', async () => {
+    const inc = await provider.search(q({ unpaintedOnly: true, bodyType: 'hatchback-5-door' }));
+    // 1000000001 detayında boyalı parça var -> elenir; özet kayıtlarda alan bilinmiyor -> işaretli kalır
+    expect(inc.results.map((r) => r.id).sort()).toEqual(['1000000002', '1000000003', '1000000009']);
+    expect(inc.results.every((r) => r.unknownFields.includes('unpaintedOnly'))).toBe(true);
+    expect(inc.excludedUnknown).toBe(0);
+    const exc = await provider.search(q({ unpaintedOnly: true, unknown: 'exclude' }));
+    expect(exc.results).toEqual([]);
+    expect(exc.excludedUnknown).toBe(3);
+    const pos = await provider.search(q({ bodyType: 'hatchback-5-door', color: 'white', enginePower: '101-125', unknown: 'exclude' }));
+    expect(pos.results.map((r) => r.id)).toEqual(['1000000001']);
+    expect([...pos.appliedFilters].sort()).toEqual(['bodyType', 'color', 'enginePower']);
+  });
+
+  it('listedWithin provider saatini (now) kullanır', async () => {
+    const r = await provider.search(q({ listedWithin: '1day' }));
+    expect(r.results.map((x) => x.id).sort()).toEqual(['1000000001', '1000000002', '1000000009']);
+    expect((await provider.search(q({ listedWithin: '3days' }))).totalMatched).toBe(4);
+  });
+});
