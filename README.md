@@ -46,6 +46,12 @@ npm install
 npm run build
 ```
 
+## Demo
+
+![Demo output](docs/assets/demo.svg)
+
+The sample above comes from synthetic fixtures (no real listings) and is the actual output of the `import_listing_html`, `search_cars` and `compare_cars` tools. Regenerate it with `npm run build && npm run demo`.
+
 ## Connecting to Claude Code
 
 Use the absolute path of the built entry point:
@@ -138,6 +144,7 @@ npm run build       # compile TypeScript to dist/
 npm run typecheck
 npm test            # vitest
 npm run smoke       # end-to-end stdio check against dist/ with synthetic fixtures in a temp home
+npm run demo        # regenerate docs/assets/demo.svg from real tool calls on synthetic fixtures
 ```
 
 Parser and normalizer functions are pure (no I/O, no clock). Tests use only small, synthetic, anonymized fixtures; **never commit real listing HTML** (it contains third-party content and personal data). `tests/fixtures/private/` is git-ignored for local experiments.

@@ -29,6 +29,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
+    "demo": "node scripts/render-demo.mjs",
     "start": "node dist/index.js"
   },
   "dependencies": {
