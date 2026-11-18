@@ -73,8 +73,12 @@ export function detectPageType(html: string): PageType {
   const title = foldTr($('title').first().text());
   if (
     title.includes('just a moment') ||
+    title.includes('bir dakika') || // Türkçe yerelleştirilmiş Cloudflare sayfası: "Bir dakika lütfen..."
     html.includes('_cf_chl_opt') ||
-    html.includes('challenges.cloudflare.com')
+    html.includes('challenges.cloudflare.com') ||
+    html.includes('/cdn-cgi/challenge-platform/') ||
+    html.includes('cf-turnstile') ||
+    html.includes('id="challenge-form"')
   ) {
     return 'challenge';
   }

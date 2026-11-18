@@ -18,6 +18,18 @@ describe('detectPageType', () => {
     expect(detectPageType(fx('listing.synthetic.html'))).toBe('listing');
     expect(detectPageType(fx('challenge.html'))).toBe('challenge');
   });
+  it('Türkçe Cloudflare doğrulama sayfası challenge', () => {
+    expect(detectPageType(fx('challenge.tr.html'))).toBe('challenge');
+  });
+  it('challenge işaretleri (başlıksız): platform betiği, turnstile, challenge-form', () => {
+    for (const marker of [
+      '<script src="/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1"></script>',
+      '<div class="cf-turnstile"></div>',
+      '<form id="challenge-form"></form>',
+    ]) {
+      expect(detectPageType(`<html><head><title>x</title></head><body>${marker}</body></html>`)).toBe('challenge');
+    }
+  });
   it('rastgele HTML unknown', () => {
     expect(detectPageType('<html><body><p>merhaba</p></body></html>')).toBe('unknown');
     expect(detectPageType('')).toBe('unknown');

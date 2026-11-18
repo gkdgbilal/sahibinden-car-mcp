@@ -10,6 +10,9 @@ export interface Transport {
 /** CDP tarayıcı uç noktası: yalnızca loopback (127.0.0.1) ve /devtools/browser/<id> yolu. */
 export const LOOPBACK_WS = /^ws:\/\/127\.0\.0\.1:\d{1,5}\/devtools\/browser\/[\w-]+$/;
 
+/** Bu Node sürümünde tarayıcı modu için gereken global WebSocket var mı. */
+export const runtimeSupportsCdp = (): boolean => typeof globalThis.WebSocket === 'function';
+
 /**
  * Node'un global WebSocket'i ile loopback CDP bağlantısı açar (kodda tek WebSocket kullanımı burasıdır).
  * Ek başlık veya Origin gönderilmez.
@@ -18,7 +21,7 @@ export function openLoopbackTransport(url: string, timeoutMs = 5000): Promise<Tr
   if (!LOOPBACK_WS.test(url)) {
     return Promise.reject(new BrowserError('not-running', 'Yalnızca 127.0.0.1 CDP adresine bağlanılır'));
   }
-  if (typeof globalThis.WebSocket !== 'function') {
+  if (!runtimeSupportsCdp()) {
     return Promise.reject(new BrowserError('unsupported-runtime', 'Tarayıcı modu Node 22.12+ ister', 'Node 22.12 veya üstünü kullanın'));
   }
   return new Promise<Transport>((resolve, reject) => {
