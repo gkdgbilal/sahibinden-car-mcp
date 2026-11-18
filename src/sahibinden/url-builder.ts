@@ -21,7 +21,7 @@ const BRAND_OF_MODEL: Record<string, string> = {
 const TRANSMISSION_LABEL = { manual: 'Manuel', automatic: 'Otomatik', 'semi-automatic': 'Yarı Otomatik' } as const;
 
 /** Kategori yolu için slug; "1.3" gibi motor hacmindeki nokta korunur (/opel-astra-1.3-cdti). */
-const slugify = (s: string) =>
+export const slugify = (s: string) =>
   foldTr(s).replace(/[^a-z0-9.]+/g, '-').replace(/^[-.]+|[-.]+$/g, '');
 
 /** Arama sonuç sayfası URL'leri (model başına bir tane). Saf; ağ isteği atmaz. */

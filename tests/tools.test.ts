@@ -22,9 +22,12 @@ beforeEach(() => {
   const inbox = path.join(dir, 'inbox');
   fs.mkdirSync(inbox);
   for (const f of ['search.synthetic.html', 'listing.synthetic.html']) fs.copyFileSync(path.join(fxDir, f), path.join(inbox, f));
+  const store = new JsonStore(path.join(dir, 'store.json'));
   deps = {
-    provider: new ImportProvider({ store: new JsonStore(path.join(dir, 'store.json')), inboxDir: inbox, now: () => '2026-11-18T12:00:00.000Z' }),
+    provider: new ImportProvider({ store, inboxDir: inbox, now: () => '2026-11-18T12:00:00.000Z' }),
     nowYear: () => 2026,
+    store,
+    now: () => new Date('2026-11-18T12:00:00.000Z'),
   };
 });
 afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });

@@ -2,6 +2,7 @@
 //   Koşu A: tarayıcı modu kapalı (varsayılan) -> stdio, tam 5 tool.
 //   Koşu B: SAHIBINDEN_BROWSER_MODE=on + boş profil -> stdio, 8 tool, Chrome yok -> 'not-running'.
 //   Koşu C: dist/ modülleri süreç içinde, sahte sayfa kaynağıyla live_search / live_get_listings akışı.
+//   Koşu D: price_drops handler + get_listing.tracking (dist, süreç içi, geçici store).
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -204,7 +205,9 @@ try {
     now: () => clock,
     runtimeSupported: () => true,
   });
-  const server = createServer({ provider: importProvider, nowYear: () => new Date().getFullYear(), live: liveProvider });
+  const server = createServer({
+    provider: importProvider, nowYear: () => new Date().getFullYear(), store, now: () => new Date(), live: liveProvider,
+  });
   const replies = new Map();
   const transport = {
     start: async () => {},
@@ -235,6 +238,32 @@ try {
   assert(cListing?.listing?.id === '1000000001', 'koşu C: get_listing detayı bulamadı');
   assert(navigated.length === 2 && navigated.every((u) => new URL(u).hostname === 'www.sahibinden.com'), 'koşu C: beklenmeyen gezinme');
   assert(!JSON.stringify(cSearch).includes('<html'), 'koşu C: çıktıda ham HTML');
+
+  // ---- Koşu D: price_drops handler (sunucuya W4'te kaydedilir), dist modülleri, geçici store ----
+  const { priceDropsHandler, priceDropsInput, priceDropsOutput } = await distImport('tools/price-drops.js');
+  const { getListingHandler, getListingInput, getListingOutput } = await distImport('tools/get-listing.js');
+  const dStore = new JsonStore(path.join(fs.mkdtempSync(path.join(tmpRoot, 'D-')), 'store.json'));
+  const dProvider = new ImportProvider({ store: dStore, inboxDir: path.join(cHome, 'inbox'), now: () => new Date().toISOString() });
+  const dItem = {
+    id: '1000000009', url: 'https://www.sahibinden.com/ilan/vasita-otomobil-ornek-1000000009/detay', title: 'ORNEK', brand: null, series: null,
+    model: null, year: 2011, km: 176000, color: null, price: 745000, currency: 'TL', city: 'Samsun', district: null,
+    listingDate: null, transmission: null, fuel: null, source: 'search', capturedAt: '2026-11-01T12:00:00.000Z',
+  };
+  dStore.upsertSummary(dItem);
+  dStore.upsertSummary({ ...dItem, price: 715000, capturedAt: '2026-11-09T12:00:00.000Z' });
+  dStore.upsertSummary(dItem); // yeniden okuma sahte düşüş/artış üretmez
+  const dNow = () => new Date('2026-11-18T12:00:00.000Z');
+  const dOut = priceDropsOutput.parse(await priceDropsHandler(priceDropsInput.parse({}), { store: dStore, now: dNow }));
+  assert(dOut.drops.length === 1 && dOut.drops[0].dropTl === 30000 && dOut.drops[0].dropPct === 4, 'koşu D: price_drops düşüşü bulamadı');
+  assert(!JSON.stringify(dOut).includes('kaldırıldı'), 'koşu D: kesin kaldırıldı hükmü');
+  const dEmpty = priceDropsOutput.parse(
+    await priceDropsHandler(priceDropsInput.parse({}), { store: new JsonStore(path.join(tmpRoot, 'D-empty.json')), now: dNow }),
+  );
+  assert(dEmpty.drops.length === 0 && dEmpty.notes[0].includes('Store boş'), 'koşu D: boş store sonucu beklenenden farklı');
+  const dGet = getListingOutput.parse(
+    await getListingHandler(getListingInput.parse({ ref: '1000000009' }), { provider: dProvider, store: dStore, now: dNow }),
+  );
+  assert(dGet.tracking?.priceHistory.length === 2 && dGet.tracking.lifecycle.status === 'seen-recently', 'koşu D: get_listing.tracking eksik');
 
   finish(0, 'SMOKE OK');
 } catch (e) {

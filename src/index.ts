@@ -40,7 +40,13 @@ const live = browserConfig.enabled
     })
   : undefined;
 
-const server = createServer({ provider, nowYear: () => new Date().getFullYear(), ...(live ? { live } : {}) });
+const server = createServer({
+  provider,
+  nowYear: () => new Date().getFullYear(),
+  store,
+  now: () => new Date(),
+  ...(live ? { live } : {}),
+});
 await server.connect(new StdioServerTransport());
 log.info('sahibinden-car-mcp started', {
   provider: provider.name,
