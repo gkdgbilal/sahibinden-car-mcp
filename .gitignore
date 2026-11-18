@@ -6,3 +6,4 @@ inbox/
 store.json
 tests/fixtures/private/
 .DS_Store
+chrome-profile/
