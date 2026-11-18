@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { parseRef } from '../providers/provider.js';
-import type { Listing, ListingSummary } from '../sahibinden/types.js';
+import { TramerStatusSchema } from '../sahibinden/types.js';
+import type { Listing, ListingSummary, TramerStatus } from '../sahibinden/types.js';
 import type { ToolDeps } from './deps.js';
 
 export const COMPARE_CARS_DESCRIPTION =
@@ -23,9 +24,11 @@ export const compareCarsOutput = z.object({
       priceVsSetMedianPct: z.number().nullable(),
       heavyDamage: z.boolean().nullable(),
       tramerAmount: z.number().nullable(),
+      tramerStatus: TramerStatusSchema.nullable(),
       changedParts: z.number().nullable(),
       paintedParts: z.number().nullable(),
       completeness: z.enum(['full', 'summary']),
+      notes: z.array(z.string()),
     }),
   ),
   stats: z.object({
@@ -69,6 +72,15 @@ export function computeComparison(
     const full = isListing(e);
     const ageYears = e.year === null ? null : Math.max(nowYear - e.year, 0);
     const damage = full ? e.damage : null;
+    const tramerAmount = full ? e.tramerAmount : null;
+    // Eski depolanmış kayıtlarda tramerStatus yoktur; tutardan türetilir.
+    const tramerStatus: TramerStatus | null = full
+      ? (e.tramerStatus ?? (e.tramerAmount !== null ? 'amount' : 'unknown'))
+      : null;
+    const notes: string[] = [];
+    if (full && tramerAmount === null && (tramerStatus === 'mentioned' || tramerStatus === 'unknown')) {
+      notes.push('tramer tutarı açıklamada belirsiz; resmi tramer sorgusu yapın');
+    }
     return {
       id: e.id,
       title: e.title,
@@ -85,12 +97,14 @@ export function computeComparison(
           ? round1((e.price / med - 1) * 100)
           : null,
       heavyDamage: full ? e.heavyDamage : null,
-      tramerAmount: full ? e.tramerAmount : null,
+      tramerAmount,
+      tramerStatus,
       changedParts: damage ? damage.filter((d) => d.status === 'changed').length : null,
       paintedParts: damage
         ? damage.filter((d) => d.status === 'painted' || d.status === 'local-painted').length
         : null,
       completeness: full ? ('full' as const) : ('summary' as const),
+      notes,
     };
   });
 

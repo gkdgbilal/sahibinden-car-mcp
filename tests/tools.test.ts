@@ -123,6 +123,24 @@ describe('computeComparison', () => {
     expect(r.rows[1]).toMatchObject({ changedParts: null, paintedParts: null });
   });
 
+  it('tramerStatus ve belirsizlik notu', () => {
+    const full = { ...mk({ source: 'listing' }), engine: null, bodyType: null, drivetrain: null, vehicleCondition: null,
+      sellerType: null, exchange: null, warranty: null, heavyDamage: null, tramerAmount: null, description: null,
+      attributes: {}, warnings: [], damage: null } as Listing;
+    const note = 'tramer tutarı açıklamada belirsiz; resmi tramer sorgusu yapın';
+    const r = computeComparison([
+      { ...full, tramerStatus: 'mentioned' },
+      { ...full, tramerStatus: 'unknown' },
+      { ...full, tramerStatus: 'none' },
+      { ...full, tramerAmount: 14500, tramerStatus: 'amount' },
+      full, // eski kayıt: durum yok, tutar yok -> unknown
+      mk({}), // özet satır
+    ], 2026);
+    expect(r.rows.map((x) => x.tramerStatus)).toEqual(['mentioned', 'unknown', 'none', 'amount', 'unknown', null]);
+    expect(r.rows.map((x) => x.notes)).toEqual([[note], [note], [], [], [note], []]);
+    expect(r.rows[3]!.tramerAmount).toBe(14500);
+  });
+
   it('boş giriş', () => {
     expect(computeComparison([], 2026).stats).toEqual({ priceMin: null, priceMedian: null, priceMax: null, count: 0 });
   });

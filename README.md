@@ -136,7 +136,8 @@ Seller name, phone number and profile links are **not parsed and not stored**. O
 - Safari `.webarchive` files are not supported. Use Chrome or Firefox ("Webpage, Complete" or "HTML only").
 - If the saved file loses its URL, the parser tries `link[rel=canonical]`, `og:url`, Chrome's `saved from url` comment, a URL built from the listing number, and finally the `sourceUrl` argument.
 - Currency is never converted: with a price filter, listings in another currency than `priceCurrency` are excluded. `listedWithin` has day granularity. The semi-automatic transmission has no known sahibinden ID, so it is applied locally but not added to the URL.
-- Version 0.1.1 is early software.
+- **Tramer is a seller claim:** when the structured field is missing, the tramer amount is read from the listing description (`tramerAmount` = sum of the amounts near the word "tramer", plus `tramerRecords` and `tramerStatus`: `none`, `amount`, `mentioned`, `unknown`). It is unverified; always run the official tramer query.
+- Version 0.1.2 is early software.
 
 ## Development
 

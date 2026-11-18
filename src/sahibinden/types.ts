@@ -73,6 +73,15 @@ export const ListingSummarySchema = z.object({
   capturedAt: z.string(),
 });
 
+export const TramerStatusSchema = z.enum(['none', 'amount', 'mentioned', 'unknown']);
+export type TramerStatus = z.infer<typeof TramerStatusSchema>;
+export const TramerRecordSchema = z.object({
+  date: z.string().optional(),
+  amount: z.number().optional(),
+  note: z.string().optional(),
+});
+export type TramerRecord = z.infer<typeof TramerRecordSchema>;
+
 export const ListingSchema = ListingSummarySchema.extend({
   engine: z
     .object({ volumeCc: z.number().nullable(), powerHp: z.number().nullable() })
@@ -84,7 +93,12 @@ export const ListingSchema = ListingSummarySchema.extend({
   exchange: z.boolean().nullable(),
   warranty: z.boolean().nullable(),
   heavyDamage: z.boolean().nullable(),
+  /** Tramer kayıt tutarlarının toplamı; tutar yoksa null. Açıklamadan çıkarıldıysa satıcı beyanıdır (warnings'e bakın). */
   tramerAmount: z.number().nullable(),
+  /** Açıklamadan çıkarılan tramer kayıtları (eski depolanmış ilanlarda yoktur). */
+  tramerRecords: z.array(TramerRecordSchema).optional(),
+  /** 'none': tramer yok; 'amount': en az bir tutar; 'mentioned': tramer/çarpma geçiyor, tutar yok; 'unknown': bahis yok. */
+  tramerStatus: TramerStatusSchema.optional(),
   damage: z.array(z.object({ part: z.string(), status: PartStatusSchema })).nullable(),
   description: z.string().nullable(),
   attributes: z.record(z.string(), z.string()),

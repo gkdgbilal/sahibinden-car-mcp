@@ -129,7 +129,9 @@ describe('parseListingPage', () => {
       { part: 'Arka Tampon', status: 'changed' },
     ]);
     expect(l.tramerAmount).toBe(12500);
-    expect(l.warnings).toContain('tramer açıklamadan çıkarıldı (doğrulanmadı)');
+    expect(l.tramerStatus).toBe('amount');
+    expect(l.tramerRecords).toEqual([{ amount: 12500, note: expect.any(String) }]);
+    expect(l.warnings).toContain('tramer açıklamadan çıkarıldı, satıcı beyanı, doğrulanmadı');
   });
   it('bilinmeyen etiketler attributes içinde kalır', () => {
     expect(l.attributes['Plaka / Uyruk']).toBe('TR Plakalı');

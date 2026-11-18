@@ -20,7 +20,10 @@ import type {
   PageType,
   ParseContext,
   PartStatus,
+  TramerRecord,
+  TramerStatus,
 } from './types.js';
+import { extractTramerFromText } from './tramer.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sel = Cheerio<any>;
@@ -545,12 +548,14 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
   }
 
   let tramerAmount = parseTrNumber(attr('tramer'));
+  let tramerRecords: TramerRecord[] = tramerAmount !== null && tramerAmount > 0 ? [{ amount: tramerAmount }] : [];
+  let tramerStatus: TramerStatus = tramerAmount === null ? 'unknown' : tramerAmount > 0 ? 'amount' : 'none';
   if (tramerAmount === null && description) {
-    const m = description.match(/tramer[^0-9]{0,20}([\d.]+)\s*(?:tl|₺)/i);
-    if (m) {
-      tramerAmount = parseTrNumber(m[1]);
-      if (tramerAmount !== null) warnings.push('tramer açıklamadan çıkarıldı (doğrulanmadı)');
-    }
+    const t = extractTramerFromText(description);
+    tramerAmount = t.amount;
+    tramerRecords = t.records;
+    tramerStatus = t.status;
+    if (t.status !== 'unknown') warnings.push('tramer açıklamadan çıkarıldı, satıcı beyanı, doğrulanmadı');
   }
 
   return {
@@ -582,6 +587,8 @@ export function parseListingPage(html: string, ctx: ParseContext): Listing {
     warranty: parseYesNo(attr('servis garantisi') ?? attr('garanti')),
     heavyDamage: parseYesNo(attr('agir hasar kayitli')),
     tramerAmount,
+    tramerRecords,
+    tramerStatus,
     damage: extractDamageArea($, warnings) ?? extractDamage($),
     description,
     attributes,

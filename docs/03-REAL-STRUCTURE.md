@@ -40,3 +40,6 @@ Yalnızca yapı bilgisi; gerçek ilan verisi/satıcı bilgisi burada yok. Fixtur
 
 ## Erişim notu
 Sunucudan curl ile 403 Cloudflare challenge; kullanıcının kendi giriş yapmış Chrome oturumunda sayfalar sorunsuz açılıyor. MCP ağ isteği atmaz; akış: kullanıcı Cmd+S → inbox → import.
+
+## Tramer (açıklamadan çıkarım, 0.1.2)
+Yapısal tramer alanı yoksa tutar açıklamadan okunur (`src/sahibinden/tramer.ts`): "tramer" kelimesinin ±80 karakter yakınındaki TL/₺/"bin" tutarları toplanır (`tramerAmount`), tarihli kayıtlar `tramerRecords` olarak listelenir. `tramerStatus`: `none` (tramer yok/tramersiz), `amount`, `mentioned` (tramer/çarpma geçiyor, tutar yok), `unknown`. Fiyat/taksit/takas gibi bağlamdaki tutarlar sayılmaz. Değer satıcı beyanıdır; warnings'te "açıklamadan çıkarıldı, satıcı beyanı, doğrulanmadı" yazar.

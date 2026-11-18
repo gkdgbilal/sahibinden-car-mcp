@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-11-18
+
+### Fixed
+- Tramer extraction from the listing description no longer returns `null` when the amount sits before the keyword ("... 170.000 TL ... tramer") or when several dated records are listed; amounts are now found within 80 characters of the word "tramer" (TL, ₺, "bin", thousands dots).
+- Amounts without a nearby "tramer" keyword (price, "12 TAKSİT") and price/instalment/trade-in amounts are never counted as tramer.
+
+### Added
+- Listing fields `tramerRecords` (`{date?, amount?, note?}`), `tramerStatus` (`none | amount | mentioned | unknown`); `tramerAmount` is now the sum of the record amounts. "tramer yok / kaydı yok / tramersiz" is reported as `none`. Description-derived values keep the warning "açıklamadan çıkarıldı, satıcı beyanı, doğrulanmadı".
+- `compare_cars` rows now include `tramerStatus` and `notes[]`; a full listing with an unknown or amount-less tramer gets "tramer tutarı açıklamada belirsiz; resmi tramer sorgusu yapın". Comparison statistics are unchanged.
+
 ## [0.1.1] - 2026-11-18
 
 ### Fixed
