@@ -7,8 +7,8 @@ describe('url-schema', () => {
     expect(CITIES.map((c) => c.code)).toEqual(Array.from({ length: 81 }, (_, i) => i + 1));
     expect(new Set(CITIES.map((c) => c.name)).size).toBe(81);
   });
-  it('yalnızca Samsun (55) ve İstanbul (34) doğrulanmış', () => {
-    expect(CITIES.filter((c) => c.verified).map((c) => c.code).sort((a, b) => a - b)).toEqual([34, 55]);
+  it('81 ilin hepsi plaka listesiyle doğrulanmış', () => {
+    expect(CITIES.filter((c) => c.verified)).toHaveLength(81);
   });
   it('Türkçe katlama ile eşleşir', () => {
     expect(resolveCity('izmir')).toMatchObject({ code: 35, name: 'İzmir' });

@@ -36,6 +36,17 @@ Your browser (Chrome/Firefox)                 sahibinden-car-mcp (local, stdio)
 
 Search result rows usually do not show transmission or fuel. Save the individual listing page to get the full details (damage, paint/replaced parts, tramer, description and more).
 
+## Quick install as a Claude Code plugin (no npm, no build) / Eklenti olarak kurulum
+
+Needs only Node 22.12+ and Claude Code 2.1.275+. The repo ships a ready-made single-file server (`bundle/server.mjs`) and the `sahibinden-car` skill:
+
+```
+/plugin marketplace add gkdgbilal/sahibinden-car-mcp
+/plugin install sahibinden-car@sahibinden-car
+```
+
+Terminal equivalent: `claude plugin marketplace add gkdgbilal/sahibinden-car-mcp && claude plugin install sahibinden-car@sahibinden-car`. Then just ask, e.g. "2015 Mercedes C200d otomatik, 200 bin km altı, en mantıklı 5 ilanı listele". Saved pages go to `~/.sahibinden-car-mcp/inbox`. (Contributors: `npm run bundle` regenerates `bundle/server.mjs`; commit it with source changes.)
+
 ## Requirements and installation
 
 - Node.js 22.12 or newer (Node 20 is end-of-life; browser mode needs the built-in `WebSocket`)
@@ -216,8 +227,8 @@ Seller name, phone number and profile links are **not parsed and not stored**. O
 - Not fully automatic by default: you must open and save the pages yourself. This semi-automatic `Cmd+S` flow is **still the default** and the deliberate, legitimate way around the Cloudflare challenge.
 - **Browser mode ([opt-in](#browser-mode-opt-in--tarayıcı-modu-isteğe-bağlı)) is experimental.** Cloudflare may ask for verification again and again (for example because the browser is remote-controlled); the tool never hides or solves it, it stops and waits for you. If that happens constantly, browser mode is not practical for you: use the import flow. It needs Node 22.12+, a locally installed Chrome that you start yourself, and it carries the terms-of-use / account risk described in its warning. It has been tested only against fake page sources so far (not yet against the live site); parser results on live pages can differ from saved pages.
 - **URL filter parameters: mostly verified, a few assumptions remain** (full table in `docs/04-URL-SCHEMA.md`, verified 2026-11-18 from the site's own filter links in a real browser session).
-  - *Verified:* category path (`/{brand}-{series}-{engine}`, e.g. `/opel-astra-1.3-cdti`), `price_min`/`price_max` (+ `price_currency`), `a5_min`/`a5_max` (year), `a4_min`/`a4_max` (km), `a6` (transmission), `a17` (fuel), `a706` (seller type), `a8` (body type), `a3` (color), `a113987` (vehicle condition), `a2320` (engine power ranges), `a1864` (engine volume ranges), `a9213` (drivetrain), `exchange`, `date`, `unpaintedParts`, `unchangingTracks`, `sorting` (8 values), `pagingOffset` (20 per page), and `address_city` for **Samsun (55) and Istanbul (34) only**. A combined filter URL was confirmed to return only matching listings.
-  - *Not verified:* `address_city` plate codes for the other 79 provinces (assumed plate codes; the returned `note` warns when one is used), the semi-automatic transmission ID (unknown, never added to URLs), selecting several values of one filter at once, and which hybrid variant you want (`hybrid` maps to Benzin(Hibrit); the `note` lists the other IDs). All constants live in `src/sahibinden/url-schema.ts` with `verified` flags.
+  - *Verified:* category path (`/{brand}-{series}-{engine}`, e.g. `/opel-astra-1.3-cdti`), `price_min`/`price_max` (+ `price_currency`), `a5_min`/`a5_max` (year), `a4_min`/`a4_max` (km), `a6` (transmission), `a17` (fuel), `a706` (seller type), `a8` (body type), `a3` (color), `a113987` (vehicle condition), `a2320` (engine power ranges), `a1864` (engine volume ranges), `a9213` (drivetrain), `exchange`, `date`, `unpaintedParts`, `unchangingTracks`, `sorting` (8 values), `pagingOffset` (20 per page), and `address_city` (plate code; all 81 provinces checked against the official plate list in `tests/cities.test.ts`, tried live on the site for **Samsun (55) and Istanbul (34)** only). A combined filter URL was confirmed to return only matching listings.
+  - *Not verified:* whether the site accepts `address_city` for the 79 provinces other than 55/34 (the plate codes themselves are verified; live acceptance is not), the semi-automatic transmission ID (unknown, never added to URLs), selecting several values of one filter at once, and which hybrid variant you want (`hybrid` maps to Benzin(Hibrit); the `note` lists the other IDs). All constants live in `src/sahibinden/url-schema.ts` with `verified` flags.
   - All `search_cars` filters (`sellerType`, `bodyType`, `color`, `vehicleCondition`, `enginePower`, `engineVolume`, `drivetrain`, `exchange`, `warranty`, `listedWithin`, `unpaintedOnly`, `noReplacedParts`, `noHeavyDamage`, `priceCurrency`) shape the URL **and** filter the local store. Detail-only fields (body type, drivetrain, condition, seller type, trade-in, warranty, heavy damage, engine, damage map) are only known for listings whose detail page you imported; for search-row-only listings they are "unknown" (marked, or excluded with `unknown: 'exclude'`). Details and rules: `docs/05-FILTER-AUDIT.md`.
 - **Parser coverage:** checked against one real saved search page and one real saved listing page (2026-11-18), plus synthetic fixtures that copy the real structure. It matches Turkish field labels rather than CSS classes, returns `null` for unknown fields and attaches `warnings[]`; other categories or layouts may still reveal gaps.
 - **Location cell format depends on the page.** Without a city filter the cell reads "Province District"; with a city filter it reads "District Neighborhood". The parser decides from `cityHint` (also accepted by `import_listing_html`), the page URL (city path segment or `address_city`) or a title starting with the city name. If signals conflict or cannot tell, `city`/`district` stay `null`, the raw text is kept in `locationRaw` and a warning is added; nothing is guessed. On city-filtered pages the first word is the district (a leading number joins the next word, e.g. "19 Mayıs") and the rest is `neighborhood`; `locationRaw` is kept there too because the split is heuristic.
@@ -244,7 +255,7 @@ Parser and normalizer functions are pure (no I/O, no clock). Tests use only smal
 
 ## Roadmap
 
-- Validate the remaining 79 province codes and the parser against real saved pages
+- Try `address_city` live for the remaining 79 provinces and validate the parser against more real saved pages
 - `analyze_market_price` and `find_price_drops` (price history is already recorded in the store)
 - Evaluate a `--remote-debugging-pipe` mode for browser mode (only the parent process could control Chrome; needs the MCP server to launch Chrome)
 - Optional additional providers behind the existing `Provider` interface, only if sahibinden.com offers an official API or access policy changes

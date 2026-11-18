@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sahibinden-car": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bundle/server.mjs"]
+    }
+  }
+}

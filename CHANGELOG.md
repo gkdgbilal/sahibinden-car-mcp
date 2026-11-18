@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Claude Code plugin packaging: `.claude-plugin/` (plugin + marketplace), `.mcp.json`, single-file server `bundle/server.mjs` (`npm run bundle`, esbuild) and the `sahibinden-car` skill under `skills/`; installs without `npm install`/build (Node 22.12+).
+
+### Changed
+- All 81 province plate codes (`CITIES`) are now verified against the official plate list and locked by `tests/cities.test.ts`; the "unverified city code" note is no longer added to search URLs. Live site acceptance of `address_city` was tried for 55 and 34 only.
+
 ## [0.2.0] - 2026-11-18
 
 Default behaviour is unchanged: without `SAHIBINDEN_BROWSER_MODE=on` the server registers the same 5 tools as 0.1.2 and makes no network requests.

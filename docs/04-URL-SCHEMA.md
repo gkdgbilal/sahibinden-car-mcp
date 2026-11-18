@@ -40,15 +40,14 @@ Kaynak: kullanıcının kendi Chrome oturumunda gerçek sahibinden sayfasından,
 | `a4054` | Servis Garantisi | 72906 Evet, 72907 Hayır (araç: `warranty`) |
 
 ### Şehir
-- `address_city={plaka kodu}`; **yalnızca 55 (Samsun) ve 34 (İstanbul) doğrulandı** (site yola yönlendirir, sonuçlar o şehirden).
-- Diğer 79 ilin plaka kodu (`CITIES` tablosu) **varsayımdır, doğrulanmadı**: araç, bu şehirler için URL'ye kodu ekler ama `note` içinde uyarır.
+- `address_city={plaka kodu}`; **81 ilin plaka kodu resmî listeyle doğrulandı** (`tests/cities.test.ts`); canlı sitede elle denenen: 55, 34 (site yola yönlendirir, sonuçlar o şehirden).
 - Şehir adı Türkçe katlama ile eşlenir (`izmir`, `İZMİR`, `Izmir` -> İzmir); plaka kodu da girilebilir. Tanınmayan şehir URL'ye eklenmez, not düşülür.
 
 ### Birleşik filtre (doğrulandı)
 `/opel-astra-1.3-cdti/samsun?a6=32467&price_max=600000&a4_max=250000&a5_min=2008&sorting=price_asc` -> 3 ilan, hepsi kısıtlara uyuyor.
 
 ## Doğrulanmamış / bilinmeyen
-- 55 ve 34 dışındaki il plaka kodlarının `address_city` değeri olarak kabulü.
+- 55 ve 34 dışındaki illerin `address_city` değerinin canlı sitede kabulü (plaka kodları listeyle doğrulandı, site tarafı denenmedi).
 - Yarı otomatik vites kimliği (bilinmiyor; URL'ye eklenmez).
 - Aynı parametrede birden çok değer (ör. birden çok renk/yakıt) ve hibrit türlerinin birlikte seçimi; araç tek değer üretir. `hybrid` -> `1312756`; diğer hibrit kimlikleri `note` içinde listelenir.
 - `pagingSize` (eski varsayım) kaldırıldı; sayfa boyutu 20 sabittir.

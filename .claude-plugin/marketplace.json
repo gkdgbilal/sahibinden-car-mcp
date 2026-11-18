@@ -1,0 +1,11 @@
+{
+  "name": "sahibinden-car",
+  "owner": { "name": "Bilal Gökdağ" },
+  "plugins": [
+    {
+      "name": "sahibinden-car",
+      "source": "./",
+      "description": "sahibinden.com araç ilanı araştırma: MCP sunucusu + skill, kurulum için npm/build gerekmez (Node 22.12+)."
+    }
+  ]
+}

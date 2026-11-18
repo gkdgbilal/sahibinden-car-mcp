@@ -34,7 +34,7 @@ export const PARAMS = {
   heavyDamage: { key: 'a116445', verified: true }, // Ağır Hasar Kayıtlı: 1263353 Evet, 1263354 Hayır
   warranty: { key: 'a4054', verified: true }, // Servis Garantisi: 72906 Evet, 72907 Hayır
   sorting: { key: 'sorting', verified: true },
-  // Parametre doğrulandı; plaka kodları yalnızca CITIES içinde işaretli şehirler için doğrulandı.
+  // Parametre doğrulandı; değer plaka kodudur (81 il, CITIES). Canlı sitede elle denenen: 55, 34.
   city: { key: 'address_city', verified: true },
   pagingOffset: { key: 'pagingOffset', verified: true },
 } as const;
@@ -145,13 +145,13 @@ export const SORTING_VALUES: Record<Sort, string> = {
 export interface CityEntry {
   code: number;
   name: string;
-  /** true = `address_city={code}` canlı sitede doğrulandı; false = plaka kodu varsayımı. */
+  /** true = plaka kodu resmî 81 il listesiyle doğrulandı (tests/cities.test.ts). */
   verified: boolean;
 }
 
-const city = (code: number, name: string): CityEntry => ({ code, name, verified: code === 55 || code === 34 });
+const city = (code: number, name: string): CityEntry => ({ code, name, verified: true });
 
-/** 81 il, plaka koduyla. Yalnızca Samsun (55) ve İstanbul (34) doğrulandı. */
+/** 81 il, plaka koduyla; tablo resmî plaka listesine göre doğrulandı (tests/cities.test.ts). */
 export const CITIES: readonly CityEntry[] = [
   city(1, 'Adana'), city(2, 'Adıyaman'), city(3, 'Afyonkarahisar'), city(4, 'Ağrı'), city(5, 'Amasya'),
   city(6, 'Ankara'), city(7, 'Antalya'), city(8, 'Artvin'), city(9, 'Aydın'), city(10, 'Balıkesir'),

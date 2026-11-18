@@ -110,15 +110,14 @@ describe('buildSearchUrls', () => {
     expect(s('year_desc')).toBe('yil-nu_desc');
   });
 
-  it('şehir: doğrulanmış (İstanbul 34), doğrulanmamış (not), bilinmeyen (eklenmez)', () => {
+  it('şehir: plaka koduyla (İstanbul 34, İzmir 35), bilinmeyen (eklenmez)', () => {
     const ist = first({ city: 'İstanbul' });
     expect(new URL(ist.url).searchParams.get('address_city')).toBe('34');
     expect(ist.note).toBeUndefined();
 
     const izmir = first({ city: 'izmir' });
     expect(new URL(izmir.url).searchParams.get('address_city')).toBe('35');
-    expect(izmir.note).toContain('doğrulanmadı');
-    expect(izmir.note).toContain('İzmir = 35');
+    expect(izmir.note).toBeUndefined();
 
     const nowhere = first({ city: 'Atlantis' });
     expect(new URL(nowhere.url).searchParams.has('address_city')).toBe(false);
