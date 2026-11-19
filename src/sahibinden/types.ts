@@ -9,6 +9,10 @@ export const PartStatusSchema = z.enum(['original', 'painted', 'local-painted', 
 // Hem sahibinden arama URL'sine hem yerel mağaza filtresine uygulanan değerler (doğrulanmış kimlikler: url-schema.ts).
 export const BodyTypeSchema = z.enum([
   'cabrio', 'coupe', 'coupe-4-door', 'hatchback-3-door', 'hatchback-5-door', 'sedan', 'station-wagon', 'mpv', 'roadster',
+  // Arazi, SUV & Pickup kategorisi
+  'crossover', 'pickup', 'suv',
+  // Minivan & Panelvan kategorisi
+  'glass-van', 'half-glass-van', 'panel-van', 'refrigerated-panel-van', 'minibus',
 ]);
 export const ColorSchema = z.enum([
   'beige', 'white', 'burgundy', 'smoke-gray', 'gray', 'silver-gray', 'brown', 'red', 'navy', 'blue', 'purple', 'pink',

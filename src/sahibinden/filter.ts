@@ -33,6 +33,9 @@ const BODY_LABELS: Record<BodyType, string[]> = {
   cabrio: ['cabrio', 'cabriolet'], coupe: ['coupe'], 'coupe-4-door': ['coupe 4 kapi'],
   'hatchback-3-door': ['hatchback 3 kapi'], 'hatchback-5-door': ['hatchback 5 kapi'], sedan: ['sedan'],
   'station-wagon': ['station wagon', 'stationwagon'], mpv: ['mpv', 'minivan'], roadster: ['roadster'],
+  crossover: ['crossover'], pickup: ['pickup'], suv: ['suv'],
+  'glass-van': ['camli van'], 'half-glass-van': ['yarim camli van'], 'panel-van': ['panel van'],
+  'refrigerated-panel-van': ['frigorifik panel van'], minibus: ['minibus'],
 };
 
 function drivetrainOf(raw: string | null | undefined): SearchQuery['drivetrain'] | null {

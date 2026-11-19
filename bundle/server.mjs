@@ -5672,14 +5672,14 @@ var require_util2 = __commonJS({
         }
         const port = url2.port != null ? url2.port : url2.protocol === "https:" ? 443 : 80;
         let origin = url2.origin != null ? url2.origin : `${url2.protocol || ""}//${url2.hostname || ""}:${port}`;
-        let path9 = url2.path != null ? url2.path : `${url2.pathname || ""}${url2.search || ""}`;
+        let path11 = url2.path != null ? url2.path : `${url2.pathname || ""}${url2.search || ""}`;
         if (origin[origin.length - 1] === "/") {
           origin = origin.slice(0, origin.length - 1);
         }
-        if (path9 && path9[0] !== "/") {
-          path9 = `/${path9}`;
+        if (path11 && path11[0] !== "/") {
+          path11 = `/${path11}`;
         }
-        return new URL(`${origin}${path9}`);
+        return new URL(`${origin}${path11}`);
       }
       if (!isHttpOrHttpsPrefixed(url2.origin || url2.protocol)) {
         throw new InvalidArgumentError("Invalid URL protocol: the URL must start with `http:` or `https:`.");
@@ -6514,9 +6514,9 @@ var require_diagnostics = __commonJS({
         "undici:client:sendHeaders",
         (evt) => {
           const {
-            request: { method, path: path9, origin }
+            request: { method, path: path11, origin }
           } = evt;
-          debugLog("sending request to %s %s%s", method, origin, path9);
+          debugLog("sending request to %s %s%s", method, origin, path11);
         }
       );
     }
@@ -6534,14 +6534,14 @@ var require_diagnostics = __commonJS({
         "undici:request:headers",
         (evt) => {
           const {
-            request: { method, path: path9, origin },
+            request: { method, path: path11, origin },
             response: { statusCode }
           } = evt;
           debugLog(
             "received response to %s %s%s - HTTP %d",
             method,
             origin,
-            path9,
+            path11,
             statusCode
           );
         }
@@ -6550,23 +6550,23 @@ var require_diagnostics = __commonJS({
         "undici:request:trailers",
         (evt) => {
           const {
-            request: { method, path: path9, origin }
+            request: { method, path: path11, origin }
           } = evt;
-          debugLog("trailers received from %s %s%s", method, origin, path9);
+          debugLog("trailers received from %s %s%s", method, origin, path11);
         }
       );
       diagnosticsChannel.subscribe(
         "undici:request:error",
         (evt) => {
           const {
-            request: { method, path: path9, origin },
+            request: { method, path: path11, origin },
             error: error62
           } = evt;
           debugLog(
             "request to %s %s%s errored - %s",
             method,
             origin,
-            path9,
+            path11,
             error62.message
           );
         }
@@ -6681,7 +6681,7 @@ var require_request = __commonJS({
     var kHandler = /* @__PURE__ */ Symbol("handler");
     var Request = class {
       constructor(origin, {
-        path: path9,
+        path: path11,
         method,
         body,
         headers,
@@ -6698,11 +6698,11 @@ var require_request = __commonJS({
         maxRedirections,
         typeOfService
       }, handler) {
-        if (typeof path9 !== "string") {
+        if (typeof path11 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path9[0] !== "/" && !(path9.startsWith("http://") || path9.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path11[0] !== "/" && !(path11.startsWith("http://") || path11.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.test(path9)) {
+        } else if (invalidPathRegex.test(path11)) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -6777,7 +6777,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? serializePathWithQuery(path9, query) : path9;
+        this.path = query ? serializePathWithQuery(path11, query) : path11;
         this.origin = origin;
         this.protocol = getProtocolFromUrlString(origin);
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
@@ -12021,7 +12021,7 @@ var require_client_h1 = __commonJS({
       }
     }
     function writeH1(client, request) {
-      const { method, path: path9, host, upgrade, blocking, reset } = request;
+      const { method, path: path11, host, upgrade, blocking, reset } = request;
       let { body, headers, contentLength } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH" || method === "QUERY" || method === "PROPFIND" || method === "PROPPATCH";
       if (util.isFormDataLike(body)) {
@@ -12097,7 +12097,7 @@ var require_client_h1 = __commonJS({
         socket[kBlocking] = true;
       }
       setTypeOfService(socket, request);
-      let header = `${method} ${path9} HTTP/1.1\r
+      let header = `${method} ${path11} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -12774,7 +12774,7 @@ var require_client_h2 = __commonJS({
       const headersTimeout = request.headersTimeout ?? client[kHeadersTimeout];
       const bodyTimeout = request.bodyTimeout ?? client[kBodyTimeout];
       const session = client[kHTTP2Session];
-      const { method, path: path9, host, upgrade, expectContinue, signal, protocol, headers: reqHeaders } = request;
+      const { method, path: path11, host, upgrade, expectContinue, signal, protocol, headers: reqHeaders } = request;
       let { body } = request;
       if (upgrade != null && upgrade !== "websocket") {
         util.errorRequest(client, request, new InvalidArgumentError(`Custom upgrade "${upgrade}" not supported over HTTP/2`));
@@ -12843,7 +12843,7 @@ var require_client_h2 = __commonJS({
           }
           headers[HTTP2_HEADER_METHOD] = "CONNECT";
           headers[HTTP2_HEADER_PROTOCOL] = "websocket";
-          headers[HTTP2_HEADER_PATH] = path9;
+          headers[HTTP2_HEADER_PATH] = path11;
           if (protocol === "ws:" || protocol === "wss:") {
             headers[HTTP2_HEADER_SCHEME] = protocol === "ws:" ? "http" : "https";
           } else {
@@ -12895,7 +12895,7 @@ var require_client_h2 = __commonJS({
         stream.setTimeout(headersTimeout);
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path9;
+      headers[HTTP2_HEADER_PATH] = path11;
       headers[HTTP2_HEADER_SCHEME] = protocol === "http:" ? "http" : "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
@@ -15251,10 +15251,10 @@ var require_proxy_agent = __commonJS({
         };
         const {
           origin,
-          path: path9 = "/",
+          path: path11 = "/",
           headers = {}
         } = opts;
-        opts.path = origin + path9;
+        opts.path = origin + path11;
         if (!("host" in headers) && !("Host" in headers)) {
           const { host } = new URL(origin);
           headers.host = host;
@@ -17414,20 +17414,20 @@ var require_mock_utils = __commonJS({
       }
       return normalizedQp;
     }
-    function safeUrl(path9) {
-      if (typeof path9 !== "string") {
-        return path9;
+    function safeUrl(path11) {
+      if (typeof path11 !== "string") {
+        return path11;
       }
-      const pathSegments = path9.split("?", 3);
+      const pathSegments = path11.split("?", 3);
       if (pathSegments.length !== 2) {
-        return path9;
+        return path11;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path9, method, body, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path9);
+    function matchKey(mockDispatch2, { path: path11, method, body, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path11);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -17452,8 +17452,8 @@ var require_mock_utils = __commonJS({
       const basePath = key.query ? serializePathWithQuery(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
       const resolvedPathWithoutTrailingSlash = removeTrailingSlash(resolvedPath);
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path9, ignoreTrailingSlash }) => {
-        return ignoreTrailingSlash ? matchValue(removeTrailingSlash(safeUrl(path9)), resolvedPathWithoutTrailingSlash) : matchValue(safeUrl(path9), resolvedPath);
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path11, ignoreTrailingSlash }) => {
+        return ignoreTrailingSlash ? matchValue(removeTrailingSlash(safeUrl(path11)), resolvedPathWithoutTrailingSlash) : matchValue(safeUrl(path11), resolvedPath);
       });
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
@@ -17492,19 +17492,19 @@ var require_mock_utils = __commonJS({
         mockDispatches.splice(index2, 1);
       }
     }
-    function removeTrailingSlash(path9) {
-      while (path9.endsWith("/")) {
-        path9 = path9.slice(0, -1);
+    function removeTrailingSlash(path11) {
+      while (path11.endsWith("/")) {
+        path11 = path11.slice(0, -1);
       }
-      if (path9.length === 0) {
-        path9 = "/";
+      if (path11.length === 0) {
+        path11 = "/";
       }
-      return path9;
+      return path11;
     }
     function buildKey(opts) {
-      const { path: path9, method, body, headers, query } = opts;
+      const { path: path11, method, body, headers, query } = opts;
       return {
-        path: path9,
+        path: path11,
         method,
         body,
         headers,
@@ -18194,10 +18194,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path9, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path11, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path9,
+            Path: path11,
             "Status code": statusCode,
             Persistent: persist ? PERSISTENT : NOT_PERSISTENT,
             Invocations: timesInvoked,
@@ -18279,9 +18279,9 @@ var require_mock_agent = __commonJS({
         const acceptNonStandardSearchParameters = this[kMockAgentAcceptsNonStandardSearchParameters];
         const dispatchOpts = { ...opts };
         if (acceptNonStandardSearchParameters && dispatchOpts.path) {
-          const [path9, searchParams] = dispatchOpts.path.split("?");
+          const [path11, searchParams] = dispatchOpts.path.split("?");
           const normalizedSearchParams = normalizeSearchParams(searchParams, acceptNonStandardSearchParameters);
-          dispatchOpts.path = `${path9}?${normalizedSearchParams}`;
+          dispatchOpts.path = `${path11}?${normalizedSearchParams}`;
         }
         return this[kAgent].dispatch(dispatchOpts, handler);
       }
@@ -18682,12 +18682,12 @@ var require_snapshot_recorder = __commonJS({
        * @return {Promise<void>} - Resolves when snapshots are loaded
        */
       async loadSnapshots(filePath) {
-        const path9 = filePath || this.#snapshotPath;
-        if (!path9) {
+        const path11 = filePath || this.#snapshotPath;
+        if (!path11) {
           throw new InvalidArgumentError("Snapshot path is required");
         }
         try {
-          const data2 = await readFile(resolve(path9), "utf8");
+          const data2 = await readFile(resolve(path11), "utf8");
           const parsed = JSON.parse(data2);
           if (Array.isArray(parsed)) {
             this.#snapshots.clear();
@@ -18701,7 +18701,7 @@ var require_snapshot_recorder = __commonJS({
           if (error62.code === "ENOENT") {
             this.#snapshots.clear();
           } else {
-            throw new UndiciError(`Failed to load snapshots from ${path9}`, { cause: error62 });
+            throw new UndiciError(`Failed to load snapshots from ${path11}`, { cause: error62 });
           }
         }
       }
@@ -18712,11 +18712,11 @@ var require_snapshot_recorder = __commonJS({
        * @returns {Promise<void>} - Resolves when snapshots are saved
        */
       async saveSnapshots(filePath) {
-        const path9 = filePath || this.#snapshotPath;
-        if (!path9) {
+        const path11 = filePath || this.#snapshotPath;
+        if (!path11) {
           throw new InvalidArgumentError("Snapshot path is required");
         }
-        const resolvedPath = resolve(path9);
+        const resolvedPath = resolve(path11);
         await mkdir(dirname(resolvedPath), { recursive: true });
         const data2 = Array.from(this.#snapshots.entries()).map(([hash2, snapshot]) => ({
           hash: hash2,
@@ -19357,15 +19357,15 @@ var require_redirect_handler = __commonJS({
           receivedAt: Date.now()
         });
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path9 = search ? `${pathname}${search}` : pathname;
-        const redirectUrlString = `${origin}${path9}`;
+        const path11 = search ? `${pathname}${search}` : pathname;
+        const redirectUrlString = `${origin}${path11}`;
         for (const historyUrl of this.history) {
           if (historyUrl.toString() === redirectUrlString) {
             throw new InvalidArgumentError(`Redirect loop detected. Cannot redirect to ${origin}. This typically happens when using a Client or Pool with cross-origin redirects. Use an Agent for cross-origin redirects.`);
           }
         }
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path9;
+        this.opts.path = path11;
         this.opts.origin = origin;
         this.opts.query = null;
       }
@@ -21182,10 +21182,10 @@ var require_cache_handler = __commonJS({
       }
       return locationUrl.pathname + locationUrl.search;
     }
-    function deleteCachedUri(store2, cacheKey, path9) {
+    function deleteCachedUri(store2, cacheKey, path11) {
       deleteCachedValue(store2, {
         ...cacheKey,
-        path: path9
+        path: path11
       });
       for (let i = 0; i < util.safeHTTPMethods.length; i++) {
         const method = util.safeHTTPMethods[i];
@@ -21193,7 +21193,7 @@ var require_cache_handler = __commonJS({
           deleteCachedValue(store2, {
             ...cacheKey,
             method,
-            path: path9
+            path: path11
           });
         }
       }
@@ -21204,9 +21204,9 @@ var require_cache_handler = __commonJS({
       }
       const values = Array.isArray(headerValue) ? headerValue : [headerValue];
       for (let i = 0; i < values.length; i++) {
-        const path9 = getSameOriginPath(cacheKey, values[i]);
-        if (path9 !== void 0) {
-          deleteCachedUri(store2, cacheKey, path9);
+        const path11 = getSameOriginPath(cacheKey, values[i]);
+        if (path11 !== void 0) {
+          deleteCachedUri(store2, cacheKey, path11);
         }
       }
     }
@@ -26694,11 +26694,11 @@ var require_fetch = __commonJS({
       function dispatch({ body }) {
         const url2 = requestCurrentURL(request);
         const agent = fetchParams.controller.dispatcher;
-        const path9 = url2.pathname + url2.search;
+        const path11 = url2.pathname + url2.search;
         const hasTrailingQuestionMark = url2.search.length === 0 && url2.href[url2.href.length - url2.hash.length - 1] === "?";
         return new Promise((resolve, reject) => agent.dispatch(
           {
-            path: hasTrailingQuestionMark ? `${path9}?` : path9,
+            path: hasTrailingQuestionMark ? `${path11}?` : path11,
             origin: url2.origin,
             method: request.method,
             body: agent.isMockActive ? request.body && (request.body.source || request.body.stream) : body,
@@ -27645,9 +27645,9 @@ var require_util5 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path9) {
-      for (let i = 0; i < path9.length; ++i) {
-        const code = path9.charCodeAt(i);
+    function validateCookiePath(path11) {
+      for (let i = 0; i < path11.length; ++i) {
+        const code = path11.charCodeAt(i);
         if (code < 32 || // exclude CTLs (0-31)
         code > 126 || // exclude DEL and non-ascii
         code === 59) {
@@ -31083,11 +31083,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path9 = opts.path;
+          let path11 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path9 = `/${path9}`;
+            path11 = `/${path11}`;
           }
-          url2 = new URL(util.parseOrigin(url2).origin + path9);
+          url2 = new URL(util.parseOrigin(url2).origin + path11);
         } else {
           if (!opts) {
             opts = typeof url2 === "object" ? url2 : {};
@@ -31534,7 +31534,7 @@ var require_mime_type = __commonJS({
 });
 
 // src/index.ts
-import fs7 from "node:fs";
+import fs8 from "node:fs";
 
 // node_modules/@modelcontextprotocol/server/dist/chunk-vYduTEsO.mjs
 var __create2 = Object.create;
@@ -32410,10 +32410,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path9) {
-  if (!path9)
+function getElementAtPath(obj, path11) {
+  if (!path11)
     return obj;
-  return path9.reduce((acc, key) => acc?.[key], obj);
+  return path11.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -32753,11 +32753,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path9, issues) {
+function prefixIssues(path11, issues) {
   return issues.map((iss) => {
     var _a7;
     (_a7 = iss).path ?? (_a7.path = []);
-    iss.path.unshift(path9);
+    iss.path.unshift(path11);
     return iss;
   });
 }
@@ -33219,16 +33219,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path9 = []) => {
+  const processError = (error63, path11 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path11, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path11, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path11, ...issue2.path]);
       } else {
-        const fullpath = [...path9, ...issue2.path];
+        const fullpath = [...path11, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -33267,17 +33267,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path9 = []) => {
+  const processError = (error63, path11 = []) => {
     var _a7;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path11, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path11, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path11, ...issue2.path]);
       } else {
-        const fullpath = [...path9, ...issue2.path];
+        const fullpath = [...path11, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -33316,8 +33316,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path9 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path9) {
+  const path11 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path11) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -50455,13 +50455,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path9 = ref.slice(1).split("/").filter(Boolean);
-  if (path9.length === 0) {
+  const path11 = ref.slice(1).split("/").filter(Boolean);
+  if (path11.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path9[0] === defsKey) {
-    const key = path9[1] === void 0 ? void 0 : decodeJSONPointerSegment(path9[1]);
+  if (path11[0] === defsKey) {
+    const key = path11[1] === void 0 ? void 0 : decodeJSONPointerSegment(path11[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -54889,9 +54889,9 @@ var rev2026Codec = {
     });
     const parsed = buildSchemas2026().RequestMetaEnvelopeSchema.safeParse(meta3);
     if (!parsed.success) for (const issue2 of parsed.error.issues) {
-      const path9 = issue2.path.map(String);
-      const key = path9.length > 0 ? path9.join(".") : "_meta";
-      if (path9.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
+      const path11 = issue2.path.map(String);
+      const key = path11.length > 0 ? path11.join(".") : "_meta";
+      if (path11.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
       issues.push({
         key,
         problem: issue2.message
@@ -55199,17 +55199,17 @@ function scanXMcpHeaderDeclarations(inputSchema) {
   const declarations = [];
   const seenLower = /* @__PURE__ */ new Map();
   let numberFault;
-  const visit2 = (node2, path9, reachable) => {
+  const visit2 = (node2, path11, reachable) => {
     if (node2 === null || typeof node2 !== "object") return void 0;
     const schema = node2;
     if (X_MCP_HEADER_KEY in schema) {
-      if (!reachable || path9.length === 0) return `${pathName(path9)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
+      if (!reachable || path11.length === 0) return `${pathName(path11)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
       const raw = schema[X_MCP_HEADER_KEY];
-      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path9)}: x-mcp-header MUST be a non-empty string`;
-      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path9)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
+      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path11)}: x-mcp-header MUST be a non-empty string`;
+      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path11)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
       const type = typeof schema.type === "string" ? schema.type : void 0;
       if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) {
-        const fault$1 = `${pathName(path9)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
+        const fault$1 = `${pathName(path11)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
         if (type !== "number") return fault$1;
         numberFault ??= fault$1;
       }
@@ -55218,14 +55218,14 @@ function scanXMcpHeaderDeclarations(inputSchema) {
       if (prior !== void 0) return `x-mcp-header '${raw}' is not case-insensitively unique (also declared as '${prior}')`;
       seenLower.set(lower, raw);
       declarations.push({
-        path: path9,
+        path: path11,
         headerName: raw,
         type
       });
     }
     const properties = schema.properties;
     if (properties !== null && typeof properties === "object") for (const [key, child] of Object.entries(properties)) {
-      const fault$1 = visit2(child, [...path9, key], reachable);
+      const fault$1 = visit2(child, [...path11, key], reachable);
       if (fault$1 !== void 0) return fault$1;
     }
     for (const k of NON_REACHABLE_SUBSCHEMA_KEYWORDS) {
@@ -55233,7 +55233,7 @@ function scanXMcpHeaderDeclarations(inputSchema) {
       if (sub === void 0) continue;
       const branches = Array.isArray(sub) ? sub : sub !== null && typeof sub === "object" && OBJECT_VALUED_SUBSCHEMA_KEYWORDS.has(k) ? Object.values(sub) : [sub];
       for (const branch of branches) {
-        const fault$1 = visit2(branch, [...path9, `<${k}>`], false);
+        const fault$1 = visit2(branch, [...path11, `<${k}>`], false);
         if (fault$1 !== void 0) return fault$1;
       }
     }
@@ -55278,8 +55278,8 @@ var OBJECT_VALUED_SUBSCHEMA_KEYWORDS = /* @__PURE__ */ new Set([
   "$defs",
   "definitions"
 ]);
-function pathName(path9) {
-  return path9.length === 0 ? "<root>" : path9.join(".");
+function pathName(path11) {
+  return path11.length === 0 ? "<root>" : path11.join(".");
 }
 var HEADER_MISMATCH_ERROR_CODE = -32020;
 var INBOUND_VALIDATION_LADDER = [
@@ -55532,7 +55532,7 @@ var PROPERTY_KEYS_BY_TYPE = {
   array: shapeKeys([UntitledMultiSelectEnumSchemaSchema, TitledMultiSelectEnumSchemaSchema])
 };
 var SUPPORTED_STRING_FORMATS = new Set(StringSchemaSchema.shape.format.unwrap().options);
-function walkProperty(node2, path9, vendor, unsupported) {
+function walkProperty(node2, path11, vendor, unsupported) {
   if (!isJsonObject(node2)) return node2;
   const allowedKeys = typeof node2.type === "string" && Object.hasOwn(PROPERTY_KEYS_BY_TYPE, node2.type) ? PROPERTY_KEYS_BY_TYPE[node2.type] : void 0;
   if (allowedKeys === void 0) return node2;
@@ -55540,8 +55540,8 @@ function walkProperty(node2, path9, vendor, unsupported) {
   for (const [key, value] of Object.entries(node2)) if (allowedKeys.has(key) || isAnnotationOnlyJsonSchemaKeyword(key)) pruned[key] = value;
   else if (key === "pattern" && node2.type === "string" && typeof node2.format === "string") {
     if (!SUPPORTED_STRING_FORMATS.has(node2.format)) pruned[key] = value;
-    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path9}.${key}`);
-  } else unsupported.push(`${path9}.${key}`);
+    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path11}.${key}`);
+  } else unsupported.push(`${path11}.${key}`);
   return pruned;
 }
 function walkRequestedSchema(converted, vendor) {
@@ -55558,11 +55558,11 @@ function describeUnsupportedProperties(pruned, fallback) {
   const offenders = Object.entries(pruned.properties).filter(([, node2]) => !parseSchema(PrimitiveSchemaDefinitionSchema, node2).success).map(([name]) => `properties.${name}`);
   return offenders.length > 0 ? offenders.join(", ") : fallback;
 }
-function findDroppedConstraintPaths(original, parsed, path9 = "") {
-  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index2) => findDroppedConstraintPaths(item, parsed[index2], `${path9}[${index2}]`));
+function findDroppedConstraintPaths(original, parsed, path11 = "") {
+  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index2) => findDroppedConstraintPaths(item, parsed[index2], `${path11}[${index2}]`));
   if (!isJsonObject(original) || !isJsonObject(parsed)) return [];
   return Object.entries(original).flatMap(([key, value]) => {
-    const childPath = path9 ? `${path9}.${key}` : key;
+    const childPath = path11 ? `${path11}.${key}` : key;
     if (!Object.prototype.hasOwnProperty.call(parsed, key)) return isAnnotationOnlyJsonSchemaKeyword(key) ? [] : [childPath];
     return findDroppedConstraintPaths(value, parsed[key], childPath);
   });
@@ -59700,8 +59700,8 @@ var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     for (let i = 0; i < str.length; i++) if (str[i] === token) ind++;
     return ind;
   }
-  function removeDotSegments(path9) {
-    let input2 = path9;
+  function removeDotSegments(path11) {
+    let input2 = path11;
     const output2 = [];
     let nextSlash = -1;
     let len = 0;
@@ -60039,8 +60039,8 @@ var require_schemes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     }
     if (wsComponent.resourceName) {
       const queryIndex = wsComponent.resourceName.indexOf("?");
-      const path9 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-      wsComponent.path = path9 && path9 !== "/" ? path9 : void 0;
+      const path11 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+      wsComponent.path = path11 && path11 !== "/" ? path11 : void 0;
       wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
       wsComponent.resourceName = void 0;
     }
@@ -64143,11 +64143,11 @@ var require_dist = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     if (!f) throw new Error(`Unknown format "${name}"`);
     return f;
   };
-  function addFormats2(ajv, list, fs8, exportName) {
+  function addFormats2(ajv, list, fs9, exportName) {
     var _a7;
     var _b;
     (_a7 = (_b = ajv.opts.code).formats) !== null && _a7 !== void 0 || (_b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`);
-    for (const f of list) ajv.addFormat(f, fs8[f]);
+    for (const f of list) ajv.addFormat(f, fs9[f]);
   }
   module.exports = exports = formatsPlugin;
   Object.defineProperty(exports, "__esModule", { value: true });
@@ -65990,6 +65990,9 @@ var StdioServerTransport = class {
   }
 };
 
+// src/index.ts
+import path10 from "node:path";
+
 // src/config.ts
 import os from "node:os";
 import path2 from "node:path";
@@ -66032,7 +66035,7 @@ function loadBrowserConfig(env, homeDir2) {
 }
 
 // src/config.ts
-var VERSION = "0.2.1";
+var VERSION = "0.2.2";
 var PARSER_VERSION = 3;
 var homeDir = process.env.SAHIBINDEN_MCP_HOME ?? path2.join(os.homedir(), ".sahibinden-car-mcp");
 var inboxDir = path2.join(homeDir, "inbox");
@@ -66294,7 +66297,7 @@ async function connectToProfile(profileDir, open2 = openLoopbackTransport) {
 // src/browser/cdp-page-source.ts
 var QUICK_KIND_EXPR = `(() => {
   const t = (document.title || '').toLowerCase();
-  if (t.includes('just a moment') || t.includes('bir dakika') ||
+  if (t.includes('just a moment') || t.includes('bir dakika') || /^\\s*2 a[\u015Fs]amal[\u0131i] do[\u011Fg]rulama/.test(t) ||
       document.querySelector('#challenge-form, .cf-turnstile, script[src*="/cdn-cgi/challenge-platform/"]')) return 'challenge';
   if (document.querySelector('tr.searchResultsItem[data-id], #searchResultsTable, .classifiedInfoList')) return 'ready';
   return document.readyState === 'complete' ? 'complete' : 'loading';
@@ -67035,6 +67038,233 @@ var SUV_COLOR_IDS = {
   champagne: "675108",
   orange: "33797",
   green: "33789"
+};
+var CATEGORY_LABELS = {
+  otomobil: "Otomobil",
+  "arazi-suv-pickup": "SUV",
+  "minivan-panelvan": "Minivan & Panelvan"
+};
+var zipIds = (keys, ids) => {
+  const o = {};
+  keys.forEach((k, i) => {
+    o[k] = ids[i];
+  });
+  return o;
+};
+var POWER_KEYS = Object.keys(ENGINE_POWER_IDS);
+var VOLUME_KEYS = Object.keys(ENGINE_VOLUME_IDS);
+var OTOMOBIL = {
+  id: "otomobil",
+  pathPrefix: "",
+  keys: {
+    yearMin: PARAMS.yearMin.key,
+    yearMax: PARAMS.yearMax.key,
+    kmMin: PARAMS.kmMin.key,
+    kmMax: PARAMS.kmMax.key,
+    transmission: PARAMS.transmission.key,
+    fuel: PARAMS.fuel.key,
+    sellerType: PARAMS.sellerType.key,
+    color: PARAMS.color.key,
+    drivetrain: PARAMS.drivetrain.key,
+    heavyDamage: PARAMS.heavyDamage.key,
+    vehicleCondition: PARAMS.vehicleCondition.key,
+    bodyType: PARAMS.bodyType.key,
+    enginePower: PARAMS.enginePower.key,
+    engineVolume: PARAMS.engineVolume.key,
+    warranty: PARAMS.warranty.key
+  },
+  transmission: TRANSMISSION_IDS,
+  fuel: FUEL_IDS,
+  sellerType: SELLER_TYPE_IDS,
+  color: COLOR_IDS,
+  drivetrain: DRIVETRAIN_IDS,
+  heavyDamage: HEAVY_DAMAGE_IDS,
+  vehicleCondition: VEHICLE_CONDITION_IDS,
+  bodyType: BODY_TYPE_IDS,
+  enginePower: ENGINE_POWER_IDS,
+  engineVolume: ENGINE_VOLUME_IDS,
+  warranty: WARRANTY_IDS
+};
+var SUV = {
+  id: "arazi-suv-pickup",
+  pathPrefix: "arazi-suv-pickup-",
+  keys: {
+    yearMin: SUV_PARAMS.yearMin,
+    yearMax: SUV_PARAMS.yearMax,
+    kmMin: SUV_PARAMS.kmMin,
+    kmMax: SUV_PARAMS.kmMax,
+    transmission: SUV_PARAMS.transmission,
+    fuel: SUV_PARAMS.fuel,
+    sellerType: SUV_PARAMS.sellerType,
+    color: SUV_PARAMS.color,
+    drivetrain: SUV_PARAMS.drivetrain,
+    heavyDamage: SUV_PARAMS.heavyDamage,
+    vehicleCondition: SUV_PARAMS.vehicleCondition,
+    bodyType: "a107181",
+    enginePower: "a2321",
+    engineVolume: "a2319",
+    warranty: "a87472"
+    // a87472 = "Servis Garantisi"
+  },
+  transmission: SUV_TRANSMISSION_IDS,
+  fuel: SUV_FUEL_IDS,
+  sellerType: SUV_SELLER_IDS,
+  color: SUV_COLOR_IDS,
+  // SUV'da "AWD" ayrı değil: 4x4 (10122) tek seçenek; AWD isteği de buna eşlenir (caveat).
+  drivetrain: { ...SUV_DRIVETRAIN_IDS, awd: "10122" },
+  heavyDamage: SUV_HEAVY_DAMAGE_IDS,
+  vehicleCondition: SUV_CONDITION_IDS,
+  bodyType: { crossover: "1209954", pickup: "1209952", suv: "1209956" },
+  // Kategorinin kendi aralıkları: 4001-5000 cc ve 5001-6000 cc tek kutu; sitede daha ince ayrım yok.
+  enginePower: zipIds(POWER_KEYS, [
+    "1110290",
+    "1110288",
+    "74370",
+    "74371",
+    "74372",
+    "74373",
+    "74374",
+    "74375",
+    "74376",
+    "74377",
+    "74378",
+    "74379",
+    "74380",
+    "74381",
+    "74382",
+    "74383",
+    "74384",
+    "74385",
+    "74386",
+    "74387",
+    "74388",
+    "74389",
+    "74390",
+    "74391"
+  ]),
+  engineVolume: zipIds(VOLUME_KEYS, [
+    "620146",
+    "62629",
+    "62630",
+    "62631",
+    "62632",
+    "62633",
+    "62634",
+    "62635",
+    "62636",
+    "62636",
+    "1131548",
+    "1131548",
+    "1131550"
+  ]),
+  warranty: { yes: "675082", no: "675084" },
+  caveats: {
+    drivetrain: 'SUV kategorisinde AWD ve 4WD ayr\u0131 de\u011Fil; "4x4" (10122) kullan\u0131ld\u0131.',
+    engineVolume: "SUV kategorisinde 4001-5000 cc ve 5001-6000 cc tek aral\u0131kt\u0131r; URL daha geni\u015F aral\u0131\u011F\u0131 getirebilir (yerel filtre kesindir)."
+  }
+};
+var MINIVAN = {
+  id: "minivan-panelvan",
+  pathPrefix: "minivan-panelvan-",
+  keys: {
+    yearMin: "a767_min",
+    yearMax: "a767_max",
+    kmMin: "a766_min",
+    kmMax: "a766_max",
+    transmission: "a3807",
+    fuel: "a1847",
+    sellerType: "a769",
+    color: "a2045",
+    drivetrain: "a107201",
+    heavyDamage: "a116447",
+    bodyType: "a96780",
+    enginePower: "a4391",
+    engineVolume: "a4390"
+  },
+  transmission: { manual: "70940", automatic: "70941" },
+  fuel: { gasoline: "51668", diesel: "51669", lpg: "51667", electric: "1253353", hybrid: "1312764" },
+  sellerType: { owner: "37948", dealer: "37949", "authorized-dealer": "1282749" },
+  color: {
+    beige: "61880",
+    white: "61881",
+    burgundy: "61882",
+    "smoke-gray": "1232194",
+    gray: "61884",
+    "silver-gray": "61885",
+    brown: "1105988",
+    red: "61888",
+    navy: "61892",
+    blue: "61893",
+    purple: "61894",
+    pink: "61895",
+    yellow: "61896",
+    black: "61897",
+    turquoise: "61901",
+    orange: "61902",
+    green: "61904"
+  },
+  drivetrain: { rwd: "1210973", fwd: "1210971", "4wd": "1210972", awd: "1210972" },
+  heavyDamage: { yes: "1263363", no: "1263362" },
+  bodyType: {
+    "glass-van": "1119668",
+    "half-glass-van": "1180829",
+    "panel-van": "1119672",
+    "refrigerated-panel-van": "1183345",
+    minibus: "1171677"
+  },
+  // 501 hp ve üzeri tek kutu.
+  enginePower: zipIds(POWER_KEYS, [
+    "1129186",
+    "1129188",
+    "74406",
+    "74407",
+    "74408",
+    "74409",
+    "74410",
+    "74411",
+    "74412",
+    "74413",
+    "74414",
+    "74415",
+    "74416",
+    "74417",
+    "74418",
+    "74419",
+    "74420",
+    "74421",
+    "74422",
+    "74423",
+    "74423",
+    "74423",
+    "74423",
+    "74423"
+  ]),
+  // 5001 cc ve üzeri tek kutu.
+  engineVolume: zipIds(VOLUME_KEYS, [
+    "74395",
+    "74396",
+    "74397",
+    "74398",
+    "74399",
+    "74400",
+    "74401",
+    "74402",
+    "74403",
+    "74404",
+    "74405",
+    "74405",
+    "74405"
+  ]),
+  caveats: {
+    drivetrain: 'Minivan & Panelvan kategorisinde AWD ve 4WD ayr\u0131 de\u011Fil; "4x4" (1210972) kullan\u0131ld\u0131.',
+    enginePower: "Minivan & Panelvan kategorisinde 501 hp ve \xFCzeri tek aral\u0131kt\u0131r; URL daha geni\u015F aral\u0131\u011F\u0131 getirebilir (yerel filtre kesindir).",
+    engineVolume: "Minivan & Panelvan kategorisinde 5001 cc ve \xFCzeri tek aral\u0131kt\u0131r; URL daha geni\u015F aral\u0131\u011F\u0131 getirebilir (yerel filtre kesindir)."
+  }
+};
+var CATEGORY_PROFILES = {
+  otomobil: OTOMOBIL,
+  "arazi-suv-pickup": SUV,
+  "minivan-panelvan": MINIVAN
 };
 
 // src/browser/url-guard.ts
@@ -81656,6 +81886,7 @@ function detectPageType(html3) {
   const $2 = load(html3);
   const title = foldTr($2("title").first().text());
   if (title.includes("just a moment") || title.includes("bir dakika") || // Türkçe yerelleştirilmiş Cloudflare sayfası: "Bir dakika lütfen..."
+  title.startsWith("2 asamali dogrulama") || // sahibinden'in kendi doğrulama kapısı (otomatik istek hızı aşılınca)
   html3.includes("_cf_chl_opt") || html3.includes("challenges.cloudflare.com") || html3.includes("/cdn-cgi/challenge-platform/") || html3.includes("cf-turnstile") || html3.includes('id="challenge-form"')) {
     return "challenge";
   }
@@ -82103,177 +82334,445 @@ var BRAND_ALIASES = {
   benz: "mercedes-benz",
   "land rover": "land-rover",
   landrover: "land-rover",
-  "land-rover": "land-rover"
+  "land-rover": "land-rover",
+  vw: "volkswagen",
+  tofas: "tofas",
+  chevy: "chevrolet"
 };
 function canonicalBrand(brand) {
   const f = foldTr(brand).trim();
   return BRAND_ALIASES[f] ?? f.replace(/\s+/g, "-");
 }
-function splitMercedesModel(model) {
-  return foldTr(model).replace(/([a-z])(\d)/g, "$1 $2").replace(/(\d)([a-z])/g, "$1 $2").replace(/\s+/g, " ").trim();
-}
-function brandModelPath(brand, model) {
-  if (canonicalBrand(brand) !== "mercedes-benz") return void 0;
-  const m = splitMercedesModel(model);
-  const series = /^([abcesr]) \d/.exec(m);
-  if (!series) return void 0;
-  return `mercedes-benz-${series[1]}-serisi-${m.replace(/ /g, "-")}`;
-}
 var squash = (s) => foldTr(s).replace(/[\s-]+/g, "");
-var LAND_ROVER_MODELS = [
-  "range-rover-evoque",
-  "range-rover-sport",
-  "range-rover-velar",
-  "range-rover",
-  "discovery-sport",
-  "discovery",
-  "defender",
-  "freelander"
-];
-function suvPath(brand, model) {
-  let b = brand ? canonicalBrand(brand) : "";
-  let m = model ? foldTr(model).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : "";
-  if (b === "range-rover") {
-    b = "land-rover";
-    m = m.startsWith("range-rover") ? m : `range-rover${m ? `-${m}` : ""}`;
-  }
-  if (!b && m) {
-    const hit2 = LAND_ROVER_MODELS.find((x) => m === x || m.startsWith(`${x}-`));
-    if (hit2) b = "land-rover";
-  }
-  if (b !== "land-rover") return void 0;
-  if (!m) return { path: "arazi-suv-pickup-land-rover" };
-  const cleaned = m.replace(/^range-rover-(discovery|defender|freelander)/, "$1");
-  const hit = LAND_ROVER_MODELS.find((x) => cleaned === x || cleaned.startsWith(`${x}-`));
-  return hit ? { path: `arazi-suv-pickup-land-rover-${hit}` } : { path: "arazi-suv-pickup-land-rover" };
-}
 
-// src/sahibinden/url-builder.ts
-var BRAND_OF_MODEL = {
-  golf: "volkswagen",
-  astra: "opel",
-  focus: "ford",
-  megane: "renault",
-  corolla: "toyota",
-  civic: "honda",
-  egea: "fiat",
-  clio: "renault",
-  i20: "hyundai",
-  passat: "volkswagen",
-  polo: "volkswagen",
-  octavia: "skoda",
-  "320": "bmw"
+// src/sahibinden/catalog.json
+var catalog_default = { generatedAt: "2026-11-19", categories: { otomobil: { abarth: { l: "Abarth", s: {} }, acura: { l: "Acura", s: {} }, aion: { l: "Aion", s: {} }, "alfa-romeo": { l: "Alfa Romeo", s: { "33": { l: "33", e: null }, "75": { l: "75", e: null }, "145": { l: "145", e: null }, "146": { l: "146", e: null }, "147": { l: "147", e: null }, "155": { l: "155", e: null }, "156": { l: "156", e: null }, "159": { l: "159", e: null }, "166": { l: "166", e: null }, giulia: { l: "Giulia", e: null }, "giulia-quadrifoglio": { l: "Giulia Quadrifoglio", e: null }, giulietta: { l: "Giulietta", e: null }, brera: { l: "Brera", e: null }, gt: { l: "Gt", e: null }, gtv: { l: "Gtv", e: null }, mito: { l: "Mito", e: null }, spider: { l: "Spider", e: null } } }, alpine: { l: "Alpine", s: { a110: { l: "A110", e: null }, a290: { l: "A290", e: null } } }, anadol: { l: "Anadol", s: {} }, arora: { l: "Arora", s: { s1: { l: "S1", e: null }, s4: { l: "S4", e: null } } }, "aston-martin": { l: "Aston Martin", s: { db11: { l: "Db11", e: null }, db12: { l: "Db12", e: null }, db7: { l: "Db7", e: null }, db9: { l: "Db9", e: null }, dbs: { l: "Dbs", e: null }, rapide: { l: "Rapide", e: null }, vanquish: { l: "Vanquish", e: null }, vantage: { l: "Vantage", e: null } } }, audi: { l: "Audi", s: { a1: { l: "A1", e: null }, a2: { l: "A2", e: null }, a3: { l: "A3", e: null }, a4: { l: "A4", e: null }, a5: { l: "A5", e: null }, a6: { l: "A6", e: null }, "a6-e-tron": { l: "A6 E Tron", e: null }, a7: { l: "A7", e: null }, a8: { l: "A8", e: null }, "e-tron-gt": { l: "E Tron Gt", e: null }, r8: { l: "R8", e: null }, rs: { l: "Rs", e: null }, "s-serisi": { l: "S Serisi", e: null }, tt: { l: "Tt", e: null }, tts: { l: "Tts", e: null }, "80-serisi": { l: "80 Serisi", e: null }, "100-serisi": { l: "100 Serisi", e: null } } }, bentley: { l: "Bentley", s: { continental: { l: "Continental", e: null }, "flying-spur": { l: "Flying Spur", e: null }, mulsanne: { l: "Mulsanne", e: null } } }, bmw: { l: "BMW", s: { "1-serisi": { l: "1 Serisi", e: null }, "2-serisi": { l: "2 Serisi", e: null }, "3-serisi": { l: "3 Serisi", e: ["315", "316", "316ci", "316i", "316ti", "318ci", "318d", "318i", "318is", "318tds", "318ti", "320cd", "320ci", "320d", "320d-gt", "320d-xdrive", "320d-xdrive-gt", "320i", "320i-ed", "320si", "320td", "323ci", "323i", "323ti", "324d", "325ci", "325d", "325e", "325i", "325is", "325i-xdrive", "325td", "325tds", "325ti", "325xi", "328ci", "328i", "330ci", "330d", "330e-xdrive", "330i", "330i-xdrive", "330xd", "330xi", "335d", "335i", "340d-xdrive", "340i-xdrive"] }, "4-serisi": { l: "4 Serisi", e: null }, "5-serisi": { l: "5 Serisi", e: null }, "6-serisi": { l: "6 Serisi", e: null }, "7-serisi": { l: "7 Serisi", e: null }, "8-serisi": { l: "8 Serisi", e: null }, "i-serisi": { l: "I Serisi", e: null }, "m-serisi": { l: "M Serisi", e: null }, "z-serisi": { l: "Z Serisi", e: null } } }, buick: { l: "Buick", s: { century: { l: "Century", e: null }, "le-sabre": { l: "Le Sabre", e: null }, "park-avenue": { l: "Park Avenue", e: null }, regal: { l: "Regal", e: null }, riviera: { l: "Riviera", e: null } } }, byd: { l: "BYD", s: { dolphin: { l: "Dolphin", e: null }, han: { l: "Han", e: null }, seal: { l: "Seal", e: null } } }, cadillac: { l: "Cadillac", s: { cts: { l: "Cts", e: null }, bls: { l: "Bls", e: null }, brougham: { l: "Brougham", e: null }, deville: { l: "Deville", e: null }, eldorado: { l: "Eldorado", e: null }, fleetwood: { l: "Fleetwood", e: null }, seville: { l: "Seville", e: null }, sts: { l: "Sts", e: null } } }, chery: { l: "Chery", s: { alia: { l: "Alia", e: null }, chance: { l: "Chance", e: null }, kimo: { l: "Kimo", e: null }, niche: { l: "Niche", e: null } } }, chevrolet: { l: "Chevrolet", s: { aveo: { l: "Aveo", e: null }, camaro: { l: "Camaro", e: null }, caprice: { l: "Caprice", e: null }, celebrity: { l: "Celebrity", e: null }, corvette: { l: "Corvette", e: null }, cruze: { l: "Cruze", e: null }, epica: { l: "Epica", e: null }, evanda: { l: "Evanda", e: null }, "geo-storm": { l: "Geo Storm", e: null }, impala: { l: "Impala", e: null }, kalos: { l: "Kalos", e: null }, lacetti: { l: "Lacetti", e: null }, "monte-carlo": { l: "Monte Carlo", e: null }, rezzo: { l: "Rezzo", e: null }, spark: { l: "Spark", e: null }, orlando: { l: "Orlando", e: null } } }, chrysler: { l: "Chrysler", s: { "300-c": { l: "300 C", e: null }, "300-m": { l: "300 M", e: null }, concorde: { l: "Concorde", e: null }, crossfire: { l: "Crossfire", e: null }, lhs: { l: "Lhs", e: null }, neon: { l: "Neon", e: null }, "pt-cruiser": { l: "Pt Cruiser", e: null }, sebring: { l: "Sebring", e: null }, stratus: { l: "Stratus", e: null } } }, citroen: { l: "Citroen", s: { ami: { l: "Ami", e: null }, "c-elysee": { l: "C Elysee", e: null }, c1: { l: "C1", e: null }, c2: { l: "C2", e: null }, c3: { l: "C3", e: null }, "e-c3": { l: "E C3", e: null }, "c3-picasso": { l: "C3 Picasso", e: null }, c4: { l: "C4", e: null }, "c4-grand-picasso": { l: "C4 Grand Picasso", e: null }, "c4-picasso": { l: "C4 Picasso", e: null }, "c4-x": { l: "C4 X", e: null }, "e-c4": { l: "E C4", e: null }, "e-c4-x": { l: "E C4 X", e: null }, c5: { l: "C5", e: null }, c6: { l: "C6", e: null }, c8: { l: "C8", e: null }, saxo: { l: "Saxo", e: null }, xsara: { l: "Xsara", e: null }, bx: { l: "Bx", e: null }, evasion: { l: "Evasion", e: null }, xantia: { l: "Xantia", e: null }, xm: { l: "Xm", e: null }, zx: { l: "Zx", e: null } } }, cupra: { l: "Cupra", s: { born: { l: "Born", e: null }, leon: { l: "Leon", e: null } } }, dacia: { l: "Dacia", s: { "1310": { l: "1310", e: null }, jogger: { l: "Jogger", e: null }, lodgy: { l: "Lodgy", e: null }, logan: { l: "Logan", e: null }, sandero: { l: "Sandero", e: null }, solenza: { l: "Solenza", e: null } } }, daewoo: { l: "Daewoo", s: { nexia: { l: "Nexia", e: null }, nubira: { l: "Nubira", e: null }, espero: { l: "Espero", e: null }, lanos: { l: "Lanos", e: null }, leganza: { l: "Leganza", e: null }, matiz: { l: "Matiz", e: null }, racer: { l: "Racer", e: null }, "super-saloon": { l: "Super Saloon", e: null }, tacuma: { l: "Tacuma", e: null }, tico: { l: "Tico", e: null } } }, daihatsu: { l: "Daihatsu", s: { cuore: { l: "Cuore", e: null }, materia: { l: "Materia", e: null }, move: { l: "Move", e: null }, sirion: { l: "Sirion", e: null }, applause: { l: "Applause", e: null }, charade: { l: "Charade", e: null }, copen: { l: "Copen", e: null }, yrv: { l: "Yrv", e: null } } }, dodge: { l: "Dodge", s: { avenger: { l: "Avenger", e: null }, challenger: { l: "Challenger", e: null }, viper: { l: "Viper", e: null }, charger: { l: "Charger", e: null }, magnum: { l: "Magnum", e: null } } }, "ds-automobiles": { l: "DS Automobiles", s: { "ds-3": { l: "Ds 3", e: null }, "ds-4": { l: "Ds 4", e: null }, "ds-5": { l: "Ds 5", e: null }, "ds-9": { l: "Ds 9", e: null }, no4: { l: "No4", e: null } } }, eagle: { l: "Eagle", s: {} }, ferrari: { l: "Ferrari", s: { "296": { l: "296", e: null }, "360": { l: "360", e: null }, "430": { l: "430", e: null }, "458": { l: "458", e: null }, "488": { l: "488", e: null }, "599": { l: "599", e: null }, "812": { l: "812", e: null }, "849": { l: "849", e: null }, amalfi: { l: "Amalfi", e: null }, california: { l: "California", e: null }, "12cilindri": { l: "12cilindri", e: null }, f12: { l: "F12", e: null }, f355: { l: "F355", e: null }, f8: { l: "F8", e: null }, ff: { l: "Ff", e: null }, portofino: { l: "Portofino", e: null }, roma: { l: "Roma", e: null }, sf90: { l: "Sf90", e: null } } }, fiat: { l: "Fiat", s: { "124-spider": { l: "124 Spider", e: null }, albea: { l: "Albea", e: null }, brava: { l: "Brava", e: null }, bravo: { l: "Bravo", e: null }, "126-bis": { l: "126 Bis", e: null }, coupe: { l: "Coupe", e: null }, "500-ailesi": { l: "500 Ailesi", e: null }, egea: { l: "Egea", e: null }, idea: { l: "Idea", e: null }, linea: { l: "Linea", e: null }, marea: { l: "Marea", e: null }, mirafiori: { l: "Mirafiori", e: null }, palio: { l: "Palio", e: null }, panda: { l: "Panda", e: null }, punto: { l: "Punto", e: null }, siena: { l: "Siena", e: null }, stilo: { l: "Stilo", e: null }, tempra: { l: "Tempra", e: null }, tipo: { l: "Tipo", e: null }, topolino: { l: "Topolino", e: null }, ulysse: { l: "Ulysse", e: null }, uno: { l: "Uno", e: null } } }, ford: { l: "Ford", s: { "b-max": { l: "B Max", e: null }, "c-max": { l: "C Max", e: null }, escort: { l: "Escort", e: null }, fiesta: { l: "Fiesta", e: null }, focus: { l: "Focus", e: null }, fusion: { l: "Fusion", e: null }, galaxy: { l: "Galaxy", e: null }, "grand-c-max": { l: "Grand C Max", e: null }, ka: { l: "Ka", e: null }, mondeo: { l: "Mondeo", e: null }, mustang: { l: "Mustang", e: null }, "s-max": { l: "S Max", e: null }, taurus: { l: "Taurus", e: null }, cougar: { l: "Cougar", e: null }, festiva: { l: "Festiva", e: null }, granada: { l: "Granada", e: null }, orion: { l: "Orion", e: null }, scorpio: { l: "Scorpio", e: null }, sierra: { l: "Sierra", e: null }, taunus: { l: "Taunus", e: null }, thunderbird: { l: "Thunderbird", e: null } } }, geely: { l: "Geely", s: { echo: { l: "Echo", e: null }, emgrand: { l: "Emgrand", e: null }, familia: { l: "Familia", e: null }, fc: { l: "Fc", e: null } } }, honda: { l: "Honda", s: { accord: { l: "Accord", e: null }, city: { l: "City", e: null }, civic: { l: "Civic", e: null }, "cr-z": { l: "Cr Z", e: null }, crx: { l: "Crx", e: null }, e: { l: "E", e: null }, integra: { l: "Integra", e: null }, jazz: { l: "Jazz", e: null }, legend: { l: "Legend", e: null }, logo: { l: "Logo", e: null }, prelude: { l: "Prelude", e: null }, s2000: { l: "S2000", e: null }, shuttle: { l: "Shuttle", e: null }, stream: { l: "Stream", e: null } } }, hyundai: { l: "Hyundai", s: { accent: { l: "Accent", e: null }, "accent-blue": { l: "Accent Blue", e: null }, "accent-era": { l: "Accent Era", e: null }, atos: { l: "Atos", e: null }, coupe: { l: "Coupe", e: null }, elantra: { l: "Elantra", e: null }, excel: { l: "Excel", e: null }, genesis: { l: "Genesis", e: null }, getz: { l: "Getz", e: null }, grandeur: { l: "Grandeur", e: null }, i10: { l: "I10", e: null }, i20: { l: "I20", e: null }, "i20-active": { l: "I20 Active", e: null }, "i20-n": { l: "I20 N", e: null }, "i20-troy": { l: "I20 Troy", e: null }, i30: { l: "I30", e: null }, i40: { l: "I40", e: null }, ioniq: { l: "Ioniq", e: null }, "ioniq-3": { l: "Ioniq 3", e: null }, "ioniq-6": { l: "Ioniq 6", e: null }, ix20: { l: "Ix20", e: null }, matrix: { l: "Matrix", e: null }, sonata: { l: "Sonata", e: null }, trajet: { l: "Trajet", e: null } } }, "i-go": { l: "I-GO", s: {} }, ikco: { l: "Ikco", s: {} }, infiniti: { l: "Infiniti", s: { q30: { l: "Q30", e: null }, q50: { l: "Q50", e: null }, q60: { l: "Q60", e: null }, g: { l: "G", e: null }, i30: { l: "I30", e: null }, m: { l: "M", e: null } } }, jaguar: { l: "Jaguar", s: { daimler: { l: "Daimler", e: null }, "f-type": { l: "F Type", e: null }, "s-type": { l: "S Type", e: null }, sovereign: { l: "Sovereign", e: null }, "x-type": { l: "X Type", e: null }, xe: { l: "Xe", e: null }, xf: { l: "Xf", e: null }, xj: { l: "Xj", e: null }, xj6: { l: "Xj6", e: null }, xjr: { l: "Xjr", e: null }, xjs: { l: "Xjs", e: null }, xk8: { l: "Xk8", e: null }, xkr: { l: "Xkr", e: null } } }, joyce: { l: "Joyce", s: {} }, kia: { l: "Kia", s: { cadenza: { l: "Cadenza", e: null }, capital: { l: "Capital", e: null }, carens: { l: "Carens", e: null }, carnival: { l: "Carnival", e: null }, ceed: { l: "Ceed", e: null }, cerato: { l: "Cerato", e: null }, clarus: { l: "Clarus", e: null }, magentis: { l: "Magentis", e: null }, opirus: { l: "Opirus", e: null }, optima: { l: "Optima", e: null }, picanto: { l: "Picanto", e: null }, pride: { l: "Pride", e: null }, "pro-ceed": { l: "Pro Ceed", e: null }, rio: { l: "Rio", e: null }, sephia: { l: "Sephia", e: null }, shuma: { l: "Shuma", e: null }, stinger: { l: "Stinger", e: null }, venga: { l: "Venga", e: null } } }, kuba: { l: "Kuba", s: { chok: { l: "Chok", e: null }, city: { l: "City", e: null }, m5: { l: "M5", e: null } } }, lada: { l: "Lada", s: { kalina: { l: "Kalina", e: null }, nova: { l: "Nova", e: null }, priora: { l: "Priora", e: null }, samara: { l: "Samara", e: null }, vaz: { l: "Vaz", e: null }, vega: { l: "Vega", e: null } } }, lamborghini: { l: "Lamborghini", s: { aventador: { l: "Aventador", e: null }, gallardo: { l: "Gallardo", e: null }, huracan: { l: "Huracan", e: null }, revuelto: { l: "Revuelto", e: null }, temerario: { l: "Temerario", e: null } } }, lancia: { l: "Lancia", s: { delta: { l: "Delta", e: null }, thema: { l: "Thema", e: null }, "y-ypsilon": { l: "Y Ypsilon", e: null }, phedra: { l: "Phedra", e: null } } }, leapmotor: { l: "Leapmotor", s: {} }, lexus: { l: "Lexus", s: { ct: { l: "Ct", e: null }, es: { l: "Es", e: null }, gs: { l: "Gs", e: null }, is: { l: "Is", e: null }, lc: { l: "Lc", e: null }, "lc-convertible": { l: "Lc Convertible", e: null }, lm: { l: "Lm", e: null }, ls: { l: "Ls", e: null } } }, lincoln: { l: "Lincoln", s: { mks: { l: "Mks", e: null }, continental: { l: "Continental", e: null }, ls: { l: "Ls", e: null }, "town-car": { l: "Town Car", e: null } } }, lotus: { l: "Lotus", s: { elise: { l: "Elise", e: null }, emira: { l: "Emira", e: null }, elan: { l: "Elan", e: null }, esprit: { l: "Esprit", e: null } } }, luqi: { l: "Luqi", s: {} }, maserati: { l: "Maserati", s: { cambiocorsa: { l: "Cambiocorsa", e: null }, ghibli: { l: "Ghibli", e: null }, grancabrio: { l: "Grancabrio", e: null }, "grancabrio-e": { l: "Grancabrio E", e: null }, granturismo: { l: "Granturismo", e: null }, "granturismo-e": { l: "Granturismo E", e: null }, mc20: { l: "Mc20", e: null }, spyder: { l: "Spyder", e: null }, quattroporte: { l: "Quattroporte", e: null }, "2.24v": { l: "2.24v", e: null }, "4-serisi": { l: "4 Serisi", e: null } } }, mazda: { l: "Mazda", s: { "2": { l: "2", e: null }, "3": { l: "3", e: null }, "5": { l: "5", e: null }, "6": { l: "6", e: null }, "121": { l: "121", e: null }, "323": { l: "323", e: null }, "626": { l: "626", e: null }, "929": { l: "929", e: null }, mpv: { l: "Mpv", e: null }, mx: { l: "Mx", e: null }, lantis: { l: "Lantis", e: null }, rx: { l: "Rx", e: null }, xedos: { l: "Xedos", e: null } } }, mclaren: { l: "McLaren", s: { artura: { l: "Artura", e: null }, gt: { l: "Gt", e: null }, "mp4-12c": { l: "Mp4 12c", e: null } } }, "mercedes-benz": { l: "Mercedes-Benz", s: { "190": { l: "190", e: null }, "200": { l: "200", e: null }, "220": { l: "220", e: null }, "230": { l: "230", e: null }, "240": { l: "240", e: null }, "250": { l: "250", e: null }, "260": { l: "260", e: null }, "280": { l: "280", e: null }, "300": { l: "300", e: null }, "320": { l: "320", e: null }, "380": { l: "380", e: null }, "400": { l: "400", e: null }, "420": { l: "420", e: null }, "500": { l: "500", e: null }, "560": { l: "560", e: null }, "600": { l: "600", e: null }, "a-serisi": { l: "A Serisi", e: null }, "amg-gt": { l: "Amg Gt", e: null }, "b-serisi": { l: "B Serisi", e: null }, "c-serisi": { l: "C Serisi", e: ["c-200-d", "c-200-d-bluetec", "c-200-cdi"] }, cl: { l: "Cl", e: null }, cla: { l: "Cla", e: null }, cle: { l: "Cle", e: null }, clc: { l: "Clc", e: null }, clk: { l: "Clk", e: null }, cls: { l: "Cls", e: null }, "e-serisi": { l: "E Serisi", e: null }, eqe: { l: "Eqe", e: null }, eqs: { l: "Eqs", e: null }, "maybach-s": { l: "Maybach S", e: null }, "r-serisi": { l: "R Serisi", e: null }, "s-serisi": { l: "S Serisi", e: null }, sl: { l: "Sl", e: null }, slc: { l: "Slc", e: null }, slk: { l: "Slk", e: null }, "sls-amg": { l: "Sls Amg", e: null } } }, mercury: { l: "Mercury", s: {} }, mg: { l: "MG", s: { f: { l: "F", e: null }, mg4: { l: "Mg4", e: null }, mg7: { l: "Mg7", e: null }, zr: { l: "Zr", e: null }, zt: { l: "Zt", e: null } } }, micro: { l: "Micro", s: {} }, mini: { l: "Mini", s: { cooper: { l: "Cooper", e: null }, "cooper-clubman": { l: "Cooper Clubman", e: null }, "cooper-electric": { l: "Cooper Electric", e: null }, "john-cooper": { l: "John Cooper", e: null }, one: { l: "One", e: null }, "cooper-s": { l: "Cooper S", e: null } } }, mitsubishi: { l: "Mitsubishi", s: { attrage: { l: "Attrage", e: null }, colt: { l: "Colt", e: null }, galant: { l: "Galant", e: null }, lancer: { l: "Lancer", e: null }, "lancer-evolution": { l: "Lancer Evolution", e: null }, "3000gt": { l: "3000gt", e: null }, carisma: { l: "Carisma", e: null }, diamante: { l: "Diamante", e: null }, eclipse: { l: "Eclipse", e: null }, grandis: { l: "Grandis", e: null }, "space-star": { l: "Space Star", e: null } } }, morgan: { l: "Morgan", s: { "plus-four": { l: "Plus Four", e: null }, supersport: { l: "Supersport", e: null } } }, motolux: { l: "Motolux", s: {} }, nieve: { l: "Nieve", s: { evzoom: { l: "Evzoom", e: null }, "q-en": { l: "Q En", e: null } } }, nissan: { l: "Nissan", s: { "200-sx": { l: "200 Sx", e: null }, "350-z": { l: "350 Z", e: null }, almera: { l: "Almera", e: null }, altima: { l: "Altima", e: null }, bluebird: { l: "Bluebird", e: null }, "gt-r": { l: "Gt R", e: null }, "laurel-altima": { l: "Laurel Altima", e: null }, maxima: { l: "Maxima", e: null }, micra: { l: "Micra", e: null }, note: { l: "Note", e: null }, "nx-coupe": { l: "Nx Coupe", e: null }, primera: { l: "Primera", e: null }, pulsar: { l: "Pulsar", e: null }, sunny: { l: "Sunny", e: null }, tiida: { l: "Tiida", e: null } } }, opel: { l: "Opel", s: { adam: { l: "Adam", e: null }, agila: { l: "Agila", e: null }, ampera: { l: "Ampera", e: null }, ascona: { l: "Ascona", e: null }, astra: { l: "Astra", e: ["1.3-cdti"] }, "astra-e": { l: "Astra E", e: null }, calibra: { l: "Calibra", e: null }, cascada: { l: "Cascada", e: null }, corsa: { l: "Corsa", e: null }, "corsa-e": { l: "Corsa E", e: null }, "gt-roadster": { l: "Gt Roadster", e: null }, insignia: { l: "Insignia", e: null }, kadett: { l: "Kadett", e: null }, meriva: { l: "Meriva", e: null }, omega: { l: "Omega", e: null }, rekord: { l: "Rekord", e: null }, signum: { l: "Signum", e: null }, tigra: { l: "Tigra", e: null }, vectra: { l: "Vectra", e: null }, zafira: { l: "Zafira", e: null } } }, ortimobil: { l: "Ortimobil", s: { alexa: { l: "Alexa", e: null }, omobil: { l: "Omobil", e: null } } }, peugeot: { l: "Peugeot", s: { "106": { l: "106", e: null }, "107": { l: "107", e: null }, "205": { l: "205", e: null }, "206": { l: "206", e: null }, "207": { l: "207", e: null }, "208": { l: "208", e: null }, "301": { l: "301", e: null }, "305": { l: "305", e: null }, "306": { l: "306", e: null }, "307": { l: "307", e: null }, "308": { l: "308", e: null }, "405": { l: "405", e: null }, "406": { l: "406", e: null }, "407": { l: "407", e: null }, "508": { l: "508", e: null }, "605": { l: "605", e: null }, "607": { l: "607", e: null }, "807": { l: "807", e: null }, "206-plus": { l: "206 Plus", e: null }, "e-208": { l: "E 208", e: null }, "e-308": { l: "E 308", e: null }, pars: { l: "Pars", e: null }, rcz: { l: "Rcz", e: null } } }, plymouth: { l: "Plymouth", s: {} }, polestar: { l: "Polestar", s: {} }, pontiac: { l: "Pontiac", s: { firebird: { l: "Firebird", e: null }, sunbird: { l: "Sunbird", e: null } } }, porsche: { l: "Porsche", s: { "718": { l: "718", e: null }, "911": { l: "911", e: null }, boxster: { l: "Boxster", e: null }, cayman: { l: "Cayman", e: null }, panamera: { l: "Panamera", e: null }, "taycan-elektrik": { l: "Taycan Elektrik", e: null } } }, proton: { l: "Proton", s: { "218": { l: "218", e: null }, "415": { l: "415", e: null }, "416": { l: "416", e: null }, "418": { l: "418", e: null }, "420": { l: "420", e: null }, "gen-2": { l: "Gen 2", e: null }, saga: { l: "Saga", e: null }, savvy: { l: "Savvy", e: null }, waja: { l: "Waja", e: null }, persona: { l: "Persona", e: null } } }, rainwoll: { l: "Rainwoll", s: {} }, "rebat-motor": { l: "Rebat Motor", s: {} }, reeder: { l: "Reeder", s: {} }, "regal-raptor": { l: "Regal Raptor", s: { "k3-kls": { l: "K3 Kls", e: null }, k4: { l: "K4", e: null }, k5: { l: "K5", e: null }, "k5-long": { l: "K5 Long", e: null }, "k5-pro": { l: "K5 Pro", e: null } } }, relive: { l: "Relive", s: { baw1: { l: "Baw1", e: null }, ezi: { l: "Ezi", e: null }, n1: { l: "N1", e: null } } }, renault: { l: "Renault", s: { clio: { l: "Clio", e: null }, espace: { l: "Espace", e: null }, fluence: { l: "Fluence", e: null }, "fluence-z.e.": { l: "Fluence Z.e.", e: null }, "grand-scenic": { l: "Grand Scenic", e: null }, "grand-modus": { l: "Grand Modus", e: null }, laguna: { l: "Laguna", e: null }, latitude: { l: "Latitude", e: null }, megane: { l: "Megane", e: null }, "megane-e-tech": { l: "Megane E Tech", e: null }, modus: { l: "Modus", e: null }, safrane: { l: "Safrane", e: null }, scenic: { l: "Scenic", e: null }, "scenic-ev": { l: "Scenic Ev", e: null }, symbol: { l: "Symbol", e: null }, taliant: { l: "Taliant", e: null }, talisman: { l: "Talisman", e: null }, twingo: { l: "Twingo", e: null }, twizy: { l: "Twizy", e: null }, "vel-satis": { l: "Vel Satis", e: null }, zoe: { l: "Zoe", e: null }, "r5-e-tech": { l: "R5 E Tech", e: null }, "r-5": { l: "R 5", e: null }, "r-9": { l: "R 9", e: null }, "r-11": { l: "R 11", e: null }, "r-12": { l: "R 12", e: null }, "r-19": { l: "R 19", e: null }, "r-21": { l: "R 21", e: null } } }, rks: { l: "RKS", s: { a1: { l: "A1", e: null }, d2: { l: "D2", e: null }, m5: { l: "M5", e: null } } }, "rolls-royce": { l: "Rolls-Royce", s: { ghost: { l: "Ghost", e: null }, phantom: { l: "Phantom", e: null }, wraith: { l: "Wraith", e: null }, spectre: { l: "Spectre", e: null } } }, rover: { l: "Rover", s: { "25": { l: "25", e: null }, "45": { l: "45", e: null }, "75": { l: "75", e: null }, "200": { l: "200", e: null }, "214": { l: "214", e: null }, "216": { l: "216", e: null }, "220": { l: "220", e: null }, "414": { l: "414", e: null }, "416": { l: "416", e: null }, "420": { l: "420", e: null }, "620": { l: "620", e: null }, "820": { l: "820", e: null }, "825": { l: "825", e: null }, streetwise: { l: "Streetwise", e: null } } }, saab: { l: "Saab", s: { "900": { l: "900", e: null }, "9000": { l: "9000", e: null }, "9-3": { l: "9 3", e: null }, "9-5": { l: "9 5", e: null } } }, saipa: { l: "Saipa", s: {} }, seat: { l: "Seat", s: {}, u: true }, skoda: { l: "Skoda", s: {}, u: true }, smart: { l: "Smart", s: {}, u: true }, subaru: { l: "Subaru", s: {}, u: true }, suzuki: { l: "Suzuki", s: {}, u: true }, tata: { l: "Tata", s: {}, u: true }, tesla: { l: "Tesla", s: {}, u: true }, "the-london-taxi": { l: "The London Taxi", s: {}, u: true }, tofas: { l: "Tofa\u015F", s: {}, u: true }, togg: { l: "TOGG", s: {}, u: true }, toyota: { l: "Toyota", s: {}, u: true }, vanderhall: { l: "Vanderhall", s: {}, u: true }, volkswagen: { l: "Volkswagen", s: {}, u: true }, volta: { l: "Volta", s: {}, u: true }, volvo: { l: "Volvo", s: {}, u: true }, xev: { l: "XEV", s: {}, u: true }, yuki: { l: "Yuki", s: {}, u: true }, "zlin-motors": { l: "Zlin Motors", s: {}, u: true } }, "arazi-suv-pickup": { "alfa-romeo": { l: "Alfa Romeo", s: {}, u: true }, arora: { l: "Arora", s: {}, u: true }, "aston-martin": { l: "Aston Martin", s: {}, u: true }, audi: { l: "Audi", s: {}, u: true }, bentley: { l: "Bentley", s: {}, u: true }, bmw: { l: "BMW", s: { ix: { l: "Ix", e: null }, ix1: { l: "Ix1", e: null }, ix2: { l: "Ix2", e: null }, ix3: { l: "Ix3", e: null }, x1: { l: "X1", e: null }, x2: { l: "X2", e: null }, x3: { l: "X3", e: null }, x4: { l: "X4", e: null }, x5: { l: "X5", e: null }, x6: { l: "X6", e: null }, x7: { l: "X7", e: null }, xm: { l: "Xm", e: null } } }, byd: { l: "BYD", s: {}, u: true }, cadillac: { l: "Cadillac", s: {}, u: true }, chery: { l: "Chery", s: {}, u: true }, chevrolet: { l: "Chevrolet", s: {}, u: true }, chrysler: { l: "Chrysler", s: {}, u: true }, citroen: { l: "Citroen", s: {}, u: true }, cupra: { l: "Cupra", s: {}, u: true }, dacia: { l: "Dacia", s: {}, u: true }, daewoo: { l: "Daewoo", s: {}, u: true }, daihatsu: { l: "Daihatsu", s: {}, u: true }, dfm: { l: "DFM", s: {}, u: true }, dfsk: { l: "DFSK", s: {}, u: true }, dodge: { l: "Dodge", s: {}, u: true }, "ds-automobiles": { l: "DS Automobiles", s: {}, u: true }, ferrari: { l: "Ferrari", s: {}, u: true }, fiat: { l: "Fiat", s: {}, u: true }, ford: { l: "Ford", s: {}, u: true }, forthing: { l: "Forthing", s: {}, u: true }, foton: { l: "Foton", s: {}, u: true }, gmc: { l: "GMC", s: {}, u: true }, honda: { l: "Honda", s: {}, u: true }, hongqi: { l: "Hongqi", s: {}, u: true }, hummer: { l: "Hummer", s: {}, u: true }, hyundai: { l: "Hyundai", s: {}, u: true }, infiniti: { l: "Infiniti", s: {}, u: true }, isuzu: { l: "Isuzu", s: {}, u: true }, jaecoo: { l: "Jaecoo", s: {}, u: true }, jaguar: { l: "Jaguar", s: {}, u: true }, jeep: { l: "Jeep", s: {}, u: true }, "kgm-ssangyong": { l: "KGM SsangYong", s: {}, u: true }, kia: { l: "Kia", s: {}, u: true }, lada: { l: "Lada", s: {}, u: true }, lamborghini: { l: "Lamborghini", s: {}, u: true }, "land-rover": { l: "Land Rover", s: { "range-rover-evoque": { l: "Range Rover Evoque", e: null }, "range-rover-sport": { l: "Range Rover Sport", e: null }, "range-rover-velar": { l: "Range Rover Velar", e: null }, "range-rover": { l: "Range Rover", e: null }, "discovery-sport": { l: "Discovery Sport", e: null }, discovery: { l: "Discovery", e: null }, defender: { l: "Defender", e: null }, freelander: { l: "Freelander", e: null } }, u: true }, lexus: { l: "Lexus", s: {}, u: true }, lincoln: { l: "Lincoln", s: {}, u: true }, lotus: { l: "Lotus", s: {}, u: true }, "lynk-co": { l: "Lynk & Co", s: {}, u: true }, mahindra: { l: "Mahindra", s: {}, u: true }, maserati: { l: "Maserati", s: {}, u: true }, mazda: { l: "Mazda", s: {}, u: true }, "mercedes-benz": { l: "Mercedes-Benz", s: {}, u: true }, mg: { l: "MG", s: {}, u: true }, mini: { l: "Mini", s: {}, u: true }, mitsubishi: { l: "Mitsubishi", s: {}, u: true }, nissan: { l: "Nissan", s: {}, u: true }, omoda: { l: "Omoda", s: {}, u: true }, opel: { l: "Opel", s: {}, u: true }, peugeot: { l: "Peugeot", s: {}, u: true }, porsche: { l: "Porsche", s: {}, u: true }, renault: { l: "Renault", s: {}, u: true }, "rolls-royce": { l: "Rolls-Royce", s: {}, u: true }, santana: { l: "Santana", s: {}, u: true }, seat: { l: "Seat", s: {}, u: true }, seres: { l: "Seres", s: {}, u: true }, skoda: { l: "Skoda", s: {}, u: true }, skywell: { l: "Skywell", s: {}, u: true }, subaru: { l: "Subaru", s: {}, u: true }, suzuki: { l: "Suzuki", s: {}, u: true }, swm: { l: "SWM", s: {}, u: true }, tata: { l: "Tata", s: {}, u: true }, togg: { l: "TOGG", s: {}, u: true }, toyota: { l: "Toyota", s: {}, u: true }, volkswagen: { l: "Volkswagen", s: {}, u: true }, volvo: { l: "Volvo", s: {}, u: true }, voyah: { l: "Voyah", s: {}, u: true } }, "minivan-panelvan": { askam: { l: "Askam", s: {}, u: true }, bmc: { l: "BMC", s: {}, u: true }, chery: { l: "Chery", s: {}, u: true }, chevrolet: { l: "Chevrolet", s: {}, u: true }, chrysler: { l: "Chrysler", s: {}, u: true }, citroen: { l: "Citroen", s: {}, u: true }, dacia: { l: "Dacia", s: {}, u: true }, daewoo: { l: "Daewoo", s: {}, u: true }, daihatsu: { l: "Daihatsu", s: {}, u: true }, dfm: { l: "DFM", s: {}, u: true }, dfsk: { l: "DFSK", s: {}, u: true }, dodge: { l: "Dodge", s: {}, u: true }, faw: { l: "FAW", s: {}, u: true }, fiat: { l: "Fiat", s: {}, u: true }, ford: { l: "Ford", s: {}, u: true }, gaz: { l: "GAZ", s: {}, u: true }, gmc: { l: "GMC", s: {}, u: true }, hfkanuni: { l: "HFKanuni", s: {}, u: true }, hyundai: { l: "Hyundai", s: {}, u: true }, iveco: { l: "Iveco", s: {}, u: true }, kia: { l: "Kia", s: {}, u: true }, lancia: { l: "Lancia", s: {}, u: true }, man: { l: "MAN", s: {}, u: true }, maxus: { l: "Maxus", s: {}, u: true }, mazda: { l: "Mazda", s: {}, u: true }, "mercedes-benz": { l: "Mercedes-Benz", s: {}, u: true }, mitsubishi: { l: "Mitsubishi", s: {}, u: true }, nissan: { l: "Nissan", s: {}, u: true }, opel: { l: "Opel", s: {}, u: true }, peugeot: { l: "Peugeot", s: {}, u: true }, piaggio: { l: "Piaggio", s: {}, u: true }, pontiac: { l: "Pontiac", s: {}, u: true }, "regal-raptor": { l: "Regal Raptor", s: {}, u: true }, renault: { l: "Renault", s: {}, u: true }, seat: { l: "Seat", s: {}, u: true }, skoda: { l: "Skoda", s: {}, u: true }, suzuki: { l: "Suzuki", s: {}, u: true }, temsa: { l: "Temsa", s: {}, u: true }, tenax: { l: "Tenax", s: {}, u: true }, toyota: { l: "Toyota", s: {}, u: true }, volkswagen: { l: "Volkswagen", s: {}, u: true } } } };
+
+// src/sahibinden/catalog.ts
+var squashKey = (s) => foldTr(s).replace(/[^a-z0-9]+/g, "");
+var BRAND_ALIASES2 = {
+  mercedes: "mercedesbenz",
+  benz: "mercedesbenz",
+  mb: "mercedesbenz",
+  vw: "volkswagen",
+  chevy: "chevrolet",
+  merc: "mercedesbenz"
 };
-var TRANSMISSION_LABEL = { manual: "Manuel", automatic: "Otomatik", "semi-automatic": "Yar\u0131 Otomatik" };
-var slugify2 = (s) => foldTr(s).replace(/[^a-z0-9.]+/g, "-").replace(/^[-.]+|[-.]+$/g, "");
-function buildSearchUrls(q) {
-  const brandSlug = q.brand ? canonicalBrand(q.brand) : "";
-  const models = q.models && q.models.length > 0 ? q.models : [null];
-  const build2 = (suv) => {
-    const notes = [];
-    const params = new URLSearchParams();
-    const set2 = (p, v) => {
-      if (v !== void 0) params.set(p.key, String(v));
-    };
-    set2(PARAMS.priceMin, q.priceMin);
-    set2(PARAMS.priceMax, q.priceMax);
-    if (q.priceCurrency) set2(PARAMS.priceCurrency, PRICE_CURRENCY_IDS[q.priceCurrency]);
-    set2(suv ? { key: SUV_PARAMS.yearMin } : PARAMS.yearMin, q.yearMin);
-    set2(suv ? { key: SUV_PARAMS.yearMax } : PARAMS.yearMax, q.yearMax);
-    set2(suv ? { key: SUV_PARAMS.kmMin } : PARAMS.kmMin, q.kmMin);
-    set2(suv ? { key: SUV_PARAMS.kmMax } : PARAMS.kmMax, q.kmMax);
-    if (q.city) {
-      const c = resolveCity(q.city);
-      if (!c) {
-        notes.push(`\u015Eehir "${q.city}" tan\u0131nmad\u0131; \u015Fehir filtresi URL'ye eklenmedi, sahibinden panelinden se\xE7in.`);
-      } else {
-        set2(PARAMS.city, c.code);
-        if (!c.verified) {
-          notes.push(
-            `\u015Eehir kodu (${c.name} = ${c.code}) do\u011Frulanmad\u0131 (plaka kodu varsay\u0131m\u0131); yaln\u0131zca Samsun (55) ve \u0130stanbul (34) do\u011Fruland\u0131. URL beklenen \u015Fehri g\xF6stermezse \u015Fehri panelden se\xE7in.`
-          );
+var CATEGORY_ORDER = ["otomobil", "arazi-suv-pickup", "minivan-panelvan"];
+var pathOf = (cat, bslug, sslug, engine) => CATEGORY_PROFILES[cat].pathPrefix + [bslug, sslug, engine].filter((x) => x !== void 0).join("-");
+function seriesKeys(sslug, label) {
+  const keys = /* @__PURE__ */ new Set();
+  for (const raw of [sslug, label]) {
+    const k = squashKey(raw);
+    if (k) keys.add(k);
+    if (k.endsWith("serisi") && k.length > 6) keys.add(k.slice(0, -6));
+  }
+  return [...keys].sort((a, b) => b.length - a.length);
+}
+var Catalog = class {
+  constructor(data2) {
+    this.data = data2;
+  }
+  data;
+  get isEmpty() {
+    return CATEGORY_ORDER.every((c) => Object.keys(this.data.categories[c] ?? {}).length === 0);
+  }
+  /**
+   * Bir arama sayfasının sidebar kategori ağacından (cl2 marka, cl3 seri, cl4 motor) yeni marka/seri/motor yollarını
+   * ekler. Yalnızca sitenin kendi yolları gelir; mevcut kayıtlar silinmez. Eklenen kayıt sayısını döner.
+   */
+  learn(items) {
+    let added = 0;
+    for (const it of items) {
+      const p = it.path.replace(/^\/+/, "");
+      const category = CATEGORY_ORDER.find((c) => c !== "otomobil" && p.startsWith(CATEGORY_PROFILES[c].pathPrefix)) ?? "otomobil";
+      const rest = p.slice(CATEGORY_PROFILES[category].pathPrefix.length);
+      const brands = this.data.categories[category] ??= {};
+      if (it.cl === "cl2") {
+        if (rest && !brands[rest]) {
+          brands[rest] = { l: it.text || rest, s: {} };
+          added++;
+        }
+        continue;
+      }
+      const bslug = Object.keys(brands).filter((b) => rest.startsWith(`${b}-`)).sort((a, b) => b.length - a.length)[0];
+      if (!bslug) continue;
+      const brand = brands[bslug];
+      const tail = rest.slice(bslug.length + 1);
+      if (it.cl === "cl3") {
+        if (tail && !brand.s[tail]) {
+          brand.s[tail] = { l: it.text || tail, e: null };
+          added++;
+        }
+      } else if (it.cl === "cl4") {
+        const sslug = Object.keys(brand.s).filter((s) => tail.startsWith(`${s}-`)).sort((a, b) => b.length - a.length)[0];
+        if (!sslug) continue;
+        const series = brand.s[sslug];
+        const engine = tail.slice(sslug.length + 1);
+        series.e ??= [];
+        if (engine && !series.e.includes(engine)) {
+          series.e.push(engine);
+          added++;
         }
       }
     }
-    if (q.transmission) {
-      const id = (suv ? SUV_TRANSMISSION_IDS : TRANSMISSION_IDS)[q.transmission];
-      if (id) set2(suv ? { key: SUV_PARAMS.transmission } : PARAMS.transmission, id);
-      else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) i\xE7in kimlik bilinmiyor; filtreyi sahibinden panelinden se\xE7in.`);
-    }
-    if (q.fuel) {
-      set2(suv ? { key: SUV_PARAMS.fuel } : PARAMS.fuel, (suv ? SUV_FUEL_IDS : FUEL_IDS)[q.fuel]);
-      if (q.fuel === "hybrid" && !suv) {
-        const variants = Object.entries(HYBRID_VARIANT_IDS).map(([k, v]) => `${k}=${v}`).join(", ");
-        notes.push(`Hibrit i\xE7in Benzin(Hibrit) (a17=1312756) kullan\u0131ld\u0131; di\u011Fer t\xFCrler: ${variants}.`);
+    return added;
+  }
+  /** Marka girdisine (ad ya da slug) uyan (kategori, marka) kayıtları; kategori sırası otomobil, SUV, minivan. */
+  findBrands(input2) {
+    const raw = squashKey(input2);
+    const key = BRAND_ALIASES2[raw] ?? raw;
+    if (!key) return [];
+    const out = [];
+    for (const category of CATEGORY_ORDER) {
+      for (const [bslug, brand] of Object.entries(this.data.categories[category] ?? {})) {
+        if (squashKey(bslug) === key || squashKey(brand.l) === key) out.push({ category, bslug, brand });
       }
     }
-    if (suv) {
-      if (q.sellerType) set2({ key: SUV_PARAMS.sellerType }, SUV_SELLER_IDS[q.sellerType]);
-      if (q.color) set2({ key: SUV_PARAMS.color }, SUV_COLOR_IDS[q.color]);
-      if (q.vehicleCondition) set2({ key: SUV_PARAMS.vehicleCondition }, SUV_CONDITION_IDS[q.vehicleCondition]);
-      if (q.drivetrain) {
-        const id = SUV_DRIVETRAIN_IDS[q.drivetrain];
-        if (id) set2({ key: SUV_PARAMS.drivetrain }, id);
-        else notes.push(`\xC7eki\u015F (${q.drivetrain}) SUV kategorisi i\xE7in eklenmedi; sahibinden panelinden se\xE7in.`);
-      }
-      const skipped = [q.bodyType && "kasa", q.enginePower && "motor g\xFCc\xFC", q.engineVolume && "motor hacmi", q.warranty !== void 0 && "garanti"].filter(Boolean);
-      if (skipped.length) notes.push(`SUV kategorisinde do\u011Frulanmad\u0131\u011F\u0131 i\xE7in URL'ye eklenmeyen filtreler: ${skipped.join(", ")} (yerel filtre yine uygulan\u0131r).`);
-    } else {
-      if (q.sellerType) set2(PARAMS.sellerType, SELLER_TYPE_IDS[q.sellerType]);
-      if (q.bodyType) set2(PARAMS.bodyType, BODY_TYPE_IDS[q.bodyType]);
-      if (q.color) set2(PARAMS.color, COLOR_IDS[q.color]);
-      if (q.vehicleCondition) set2(PARAMS.vehicleCondition, VEHICLE_CONDITION_IDS[q.vehicleCondition]);
-      if (q.enginePower) set2(PARAMS.enginePower, ENGINE_POWER_IDS[q.enginePower]);
-      if (q.engineVolume) set2(PARAMS.engineVolume, ENGINE_VOLUME_IDS[q.engineVolume]);
-      if (q.drivetrain) set2(PARAMS.drivetrain, DRIVETRAIN_IDS[q.drivetrain]);
+    return out;
+  }
+  *allSeries(brands) {
+    for (const { category, bslug, brand } of brands) {
+      for (const [sslug, series] of Object.entries(brand.s)) yield { category, bslug, brand, sslug, series };
     }
-    if (q.exchange !== void 0) set2(PARAMS.exchange, q.exchange ? "yes" : "no");
-    if (q.listedWithin) set2(PARAMS.listedWithin, LISTED_WITHIN_VALUES[q.listedWithin]);
-    if (q.unpaintedOnly) set2(PARAMS.unpainted, "true");
-    if (q.noReplacedParts) set2(PARAMS.noReplacedParts, "true");
-    if (q.noHeavyDamage) set2(suv ? { key: SUV_PARAMS.heavyDamage } : PARAMS.heavyDamage, suv ? SUV_HEAVY_DAMAGE_IDS.no : HEAVY_DAMAGE_IDS.no);
-    if (q.warranty !== void 0 && !suv) set2(PARAMS.warranty, q.warranty ? WARRANTY_IDS.yes : WARRANTY_IDS.no);
-    set2(PARAMS.sorting, SORTING_VALUES[q.sort]);
-    if (q.page && q.page > 1) set2(PARAMS.pagingOffset, (q.page - 1) * PAGE_SIZE);
-    const query = params.toString();
-    return { query, notes };
+  }
+  allBrands() {
+    const out = [];
+    for (const category of CATEGORY_ORDER) {
+      for (const [bslug, brand] of Object.entries(this.data.categories[category] ?? {})) out.push({ category, bslug, brand });
+    }
+    return out;
+  }
+  /**
+   * Model ifadesini verilen markalar içinde çözer. `strict`: marka bilinmiyor (çıkarım); yalnızca tam seri/motor
+   * eşleşmeleri kabul edilir, "önek" tahmini yapılmaz.
+   */
+  matchModel(brands, model, strict) {
+    let ms = squashKey(model);
+    for (const b of brands) {
+      for (const bk of [squashKey(b.bslug), squashKey(b.brand.l)]) {
+        if (bk && ms.length > bk.length && ms.startsWith(bk) && !strict) {
+          ms = ms.slice(bk.length);
+          break;
+        }
+      }
+    }
+    if (!ms) return [];
+    const make = (h, level, exact, engine, notes = []) => ({
+      category: h.category,
+      path: level === "engine" ? pathOf(h.category, h.bslug, h.sslug, engine) : pathOf(h.category, h.bslug, h.sslug),
+      level,
+      label: `${h.brand.l} ${h.series.l}${engine ? ` ${engine.replace(/-/g, " ")}` : ""}`,
+      exact,
+      notes
+    });
+    const dedupe = (ts) => [...new Map(ts.map((t) => [t.path, t])).values()];
+    const exactEngine = [];
+    const exactSeries = [];
+    const partial2 = [];
+    const enginePrefix = [];
+    for (const h of this.allSeries(brands)) {
+      const keys = seriesKeys(h.sslug, h.series.l);
+      if (keys.includes(ms)) exactSeries.push(make(h, "series", true));
+      for (const e of h.series.e ?? []) {
+        const ek = squashKey(e);
+        if (!ek) continue;
+        if (ms === ek || keys.some((k) => ms === k + ek)) exactEngine.push(make(h, "engine", true, e));
+        else if (!strict && ek.length >= 3 && (ms.startsWith(ek) || keys.some((k) => ms.startsWith(k + ek)))) {
+          const len = ms.startsWith(ek) ? ek.length : Math.max(...keys.filter((k) => ms.startsWith(k + ek)).map((k) => k.length + ek.length));
+          enginePrefix.push({ h, engine: e, len });
+        }
+      }
+      if (!strict) {
+        for (const k of keys) {
+          if (!(ms.length > k.length && ms.startsWith(k))) continue;
+          const rest = ms.slice(k.length);
+          if (k.length < 3) {
+            const plausible = (h.series.e ?? []).some((e) => {
+              const ek = squashKey(e);
+              return ek.startsWith(rest) || ek.startsWith(ms) || (k + ek).startsWith(ms);
+            });
+            if (!plausible) continue;
+          }
+          partial2.push({ h, key: k, rest });
+        }
+      }
+    }
+    if (exactEngine.length) return dedupe(exactEngine);
+    if (exactSeries.length) return dedupe(exactSeries);
+    if (strict) return [];
+    if (enginePrefix.length) {
+      const best = Math.max(...enginePrefix.map((x) => x.len));
+      return dedupe(enginePrefix.filter((x) => x.len === best).map((x) => make(x.h, "engine", false, x.engine, [
+        `"${model}" ifadesinin sondaki par\xE7as\u0131 (paket/donan\u0131m) sitede ayr\u0131 yol olarak do\u011Frulanmad\u0131; motor sayfas\u0131 kullan\u0131ld\u0131, paketi yerel filtre ya da panel se\xE7sin.`
+      ])));
+    }
+    const keyed = partial2;
+    if (keyed.length) {
+      const longest = Math.max(...keyed.map((p) => p.key.length));
+      const hits = keyed.filter((p) => p.key.length === longest);
+      return dedupe(hits.map((p) => {
+        const similar = (p.h.series.e ?? []).filter((e) => squashKey(e).startsWith(p.rest.slice(0, 2))).slice(0, 8);
+        const note = `"${p.rest}" motor/versiyonu ${p.h.brand.l} ${p.h.series.l} i\xE7in katalogda yok; seri sayfas\u0131 kullan\u0131ld\u0131.` + (similar.length ? ` Benzer yollar: ${similar.join(", ")}.` : "");
+        return make(p.h, "series", false, void 0, [note]);
+      }));
+    }
+    return [];
+  }
+  /**
+   * Seri listesi bilinmeyen (u) kategorilerde, katalogda eşleşmeyen model için yol tahmini: marka yolu + "-" + modelin
+   * slug'ı (taranan 566 serinin hepsinde yol = slug(etiket)). Doğrulanmadığı için exact=false ve uyarı notuyla döner.
+   */
+  guessUnknown(brands, model) {
+    const slug = foldTr(model).replace(/[^a-z0-9.]+/g, "-").replace(/^[-.]+|[-.]+$/g, "");
+    if (!slug) return [];
+    const unknown2 = brands.filter((b) => b.brand.u);
+    if (unknown2.length === 0) return [];
+    const hinted = hintCategory(unknown2[0].bslug, squashKey(model));
+    const pick2 = unknown2.find((b) => b.category === hinted) ?? unknown2[0];
+    return [{
+      category: pick2.category,
+      path: pathOf(pick2.category, pick2.bslug, slug),
+      level: "series",
+      label: `${pick2.brand.l} ${model}`,
+      exact: false,
+      notes: [
+        `${pick2.brand.l} i\xE7in ${CATEGORY_LABELS[pick2.category]} kategorisinin seri listesi katalogda yok; /${pathOf(pick2.category, pick2.bslug, slug)} yolu sitenin adland\u0131rma kural\u0131ndan t\xFCretildi ve do\u011Frulanmad\u0131. Sayfa "bulunamad\u0131" derse ya da ba\u015Fka kategoriyi g\xF6sterirse markan\u0131n sayfas\u0131ndan seriyi se\xE7in.`
+      ]
+    }];
+  }
+  /**
+   * (marka, model) -> arama hedefleri. Marka yoksa model adından marka çıkarılır (yalnızca tam seri/motor eşleşmesi).
+   * Yalnızca marka: markanın bulunduğu her kategori için bir hedef (otomobil önce).
+   */
+  resolve(brand, model) {
+    if (this.isEmpty) return { targets: [], unresolved: true, notes: [] };
+    const notes = [];
+    const brandHits = brand ? this.findBrands(brand) : [];
+    const brandTargets = (hits) => hits.map(({ category, bslug, brand: b }) => ({
+      category,
+      path: pathOf(category, bslug),
+      level: "brand",
+      label: b.l,
+      exact: true,
+      notes: []
+    }));
+    if (brandHits.length) {
+      if (!model) return { targets: brandTargets(brandHits), unresolved: false, notes };
+      const mk = squashKey(model);
+      let targets = [];
+      if (mk.startsWith("rangerover") && mk.length > "rangerover".length) {
+        targets = this.matchModel(brandHits, model, true);
+        if (!targets.length) targets = this.matchModel(brandHits, mk.slice("rangerover".length), true);
+      }
+      if (!targets.length) targets = this.matchModel(brandHits, model, false);
+      if (targets.length) return { targets, unresolved: false, notes };
+      const guesses = this.guessUnknown(brandHits, model);
+      if (guesses.length) return { targets: guesses, unresolved: false, notes };
+      const some2 = brandHits.flatMap((h) => Object.values(h.brand.s).map((s) => s.l)).slice(0, 25);
+      notes.push(`"${model}" ${brandHits[0].brand.l} markas\u0131n\u0131n katalogunda bulunamad\u0131; marka sayfas\u0131 kullan\u0131ld\u0131. Mevcut seriler: ${[...new Set(some2)].join(", ")}.`);
+      return { targets: brandTargets(brandHits), unresolved: false, notes };
+    }
+    const candidates = [model, brand && model ? `${brand} ${model}` : null, brand && !model ? brand : null].filter((x) => !!x);
+    for (const c of candidates) {
+      const targets = this.matchModel(this.allBrands(), c, true);
+      if (targets.length === 0) continue;
+      const brands = new Set(targets.map((t) => t.label.split(" ")[0]));
+      if (brands.size > 3) continue;
+      if (targets.length > 1) notes.push(`"${c}" birden fazla yolla e\u015Fle\u015Fti: ${targets.map((t) => `/${t.path}`).join(", ")}.`);
+      return { targets, unresolved: false, notes };
+    }
+    if (model) {
+      const mk = squashKey(model);
+      const hint = Object.entries(MODEL_BRAND_HINTS).find(([, models]) => models.some((m) => mk === hintKey(m) || hintKey(m).length >= 4 && mk.startsWith(hintKey(m))));
+      if (hint) {
+        const res = this.resolve(hint[0], model);
+        if (res.targets.length) return { ...res, notes: [...notes, ...res.notes, `Marka modelden (${hint[0]}) \xE7\u0131kar\u0131ld\u0131.`] };
+      }
+    }
+    return { targets: [], unresolved: true, notes };
+  }
+};
+var MODEL_BRAND_HINTS = {
+  volkswagen: ["golf", "passat", "polo", "jetta", "tiguan:suv", "touran", "caddy:minivan", "transporter:minivan", "caravelle:minivan", "arteon", "troc:suv", "scirocco", "beetle", "touareg:suv", "bora", "lupo", "sharan", "id4:suv"],
+  toyota: ["corolla", "yaris", "auris", "avensis", "camry", "chr:suv", "rav4:suv", "hilux:suv", "landcruiser:suv", "proace:minivan", "aygo", "verso", "supra", "prius"],
+  skoda: ["octavia", "fabia", "superb", "rapid", "kodiaq:suv", "karoq:suv", "kamiq:suv", "scala", "yeti:suv", "roomster", "citigo", "enyaq:suv"],
+  seat: ["leon", "ibiza", "ateca:suv", "arona:suv", "toledo", "cordoba", "altea", "alhambra", "tarraco:suv", "mii"],
+  volvo: ["s40", "s60", "s80", "s90", "v40", "v50", "v60", "v70", "v90", "xc40:suv", "xc60:suv", "xc70:suv", "xc90:suv", "c30", "c70"],
+  tofas: ["sahin", "dogan", "kartal", "serce", "murat"],
+  tesla: ["modely:suv", "models", "model3", "modelx:suv"],
+  suzuki: ["swift", "vitara:suv", "sx4", "jimny:suv", "baleno", "ignis", "celerio", "alto", "splash"],
+  subaru: ["impreza", "legacy", "outback:suv", "forester:suv", "xv:suv", "brz", "wrx"],
+  smart: ["fortwo", "forfour"]
+};
+var HINT_CATEGORY = { suv: "arazi-suv-pickup", minivan: "minivan-panelvan" };
+var hintKey = (h) => h.split(":")[0];
+function hintCategory(bslug, mk) {
+  const h = (MODEL_BRAND_HINTS[bslug] ?? []).find((x) => mk === hintKey(x) || hintKey(x).length >= 4 && mk.startsWith(hintKey(x)));
+  const tag = h?.split(":")[1];
+  return tag ? HINT_CATEGORY[tag] : void 0;
+}
+var catalog = new Catalog(catalog_default);
+var resolveVehicle = (brand, model) => catalog.resolve(brand, model);
+
+// src/sahibinden/url-builder.ts
+var TRANSMISSION_LABEL = { manual: "Manuel", automatic: "Otomatik", "semi-automatic": "Yar\u0131 Otomatik" };
+var slugify2 = (s) => foldTr(s).replace(/[^a-z0-9.]+/g, "-").replace(/^[-.]+|[-.]+$/g, "");
+function buildQuery(q, profile) {
+  const notes = [];
+  const params = new URLSearchParams();
+  const set2 = (key, v) => {
+    if (v !== void 0) params.set(key, String(v));
   };
-  const builds = { oto: build2(false), suv: build2(true) };
-  const byUrl = /* @__PURE__ */ new Map();
-  for (const model of models) {
-    const extra = [];
-    const suvTarget = suvPath(q.brand, model);
-    const { query, notes } = suvTarget ? builds.suv : builds.oto;
-    let path9;
-    let label;
-    if (suvTarget) {
-      path9 = `/${suvTarget.path}`;
-      label = `${q.brand ?? "Land Rover"}${model ? ` ${model}` : ""}`;
-    } else if (model === null) {
-      path9 = brandSlug ? `/${brandSlug}` : "/otomobil";
-      label = q.brand ?? "Otomobil";
+  const catLabel = CATEGORY_LABELS[profile.id];
+  const missing = (what) => notes.push(`${what} ${catLabel} kategorisinde yok ya da kimli\u011Fi bilinmiyor; URL'ye eklenmedi (yerel filtre yine uygulan\u0131r).`);
+  const k = profile.keys;
+  set2(PARAMS.priceMin.key, q.priceMin);
+  set2(PARAMS.priceMax.key, q.priceMax);
+  if (q.priceCurrency) set2(PARAMS.priceCurrency.key, PRICE_CURRENCY_IDS[q.priceCurrency]);
+  set2(k.yearMin, q.yearMin);
+  set2(k.yearMax, q.yearMax);
+  set2(k.kmMin, q.kmMin);
+  set2(k.kmMax, q.kmMax);
+  if (q.city) {
+    const c = resolveCity(q.city);
+    if (!c) {
+      notes.push(`\u015Eehir "${q.city}" tan\u0131nmad\u0131; \u015Fehir filtresi URL'ye eklenmedi, sahibinden panelinden se\xE7in.`);
     } else {
-      const firstWord = foldTr(model).split(" ")[0] ?? "";
-      const brand = brandSlug || BRAND_OF_MODEL[firstWord] || "";
-      if (brand) {
-        path9 = `/${brandModelPath(brand, model) ?? slugify2(`${brand} ${model}`)}`;
-        label = `${q.brand ?? brand} ${model}`;
-      } else {
-        path9 = "/otomobil";
-        label = model;
-        extra.push(`"${model}" i\xE7in marka bilinmiyor; genel otomobil sayfas\u0131 kullan\u0131ld\u0131, modeli panelden se\xE7in.`);
+      set2(PARAMS.city.key, c.code);
+      if (!c.verified) {
+        notes.push(
+          `\u015Eehir kodu (${c.name} = ${c.code}) do\u011Frulanmad\u0131 (plaka kodu varsay\u0131m\u0131); URL beklenen \u015Fehri g\xF6stermezse \u015Fehri panelden se\xE7in.`
+        );
       }
     }
+  }
+  if (q.transmission) {
+    const id = profile.transmission[q.transmission];
+    if (id) set2(k.transmission, id);
+    else notes.push(`Vites (${TRANSMISSION_LABEL[q.transmission]}) i\xE7in kimlik bilinmiyor; filtreyi sahibinden panelinden se\xE7in.`);
+  }
+  if (q.fuel) {
+    const id = profile.fuel[q.fuel];
+    if (id) set2(k.fuel, id);
+    else missing(`Yak\u0131t (${q.fuel})`);
+    if (q.fuel === "hybrid" && profile.id === "otomobil") {
+      const variants = Object.entries(HYBRID_VARIANT_IDS).map(([name, v]) => `${name}=${v}`).join(", ");
+      notes.push(`Hibrit i\xE7in Benzin(Hibrit) (a17=1312756) kullan\u0131ld\u0131; di\u011Fer t\xFCrler: ${variants}.`);
+    } else if (q.fuel === "hybrid" && id) {
+      notes.push('Hibrit i\xE7in "Benzin (Hibrit)" kimli\u011Fi kullan\u0131ld\u0131; Plug-in/Hafif Hibrit ve Dizel (Hafif Hibrit) ayr\u0131 se\xE7eneklerdir, panelden eklenebilir.');
+    }
+  }
+  if (q.sellerType) {
+    const id = profile.sellerType[q.sellerType];
+    if (id) set2(k.sellerType, id);
+    else missing(`Kimden (${q.sellerType})`);
+  }
+  if (q.color) {
+    const id = profile.color[q.color];
+    if (id) set2(k.color, id);
+    else missing(`Renk (${q.color})`);
+  }
+  if (q.vehicleCondition) {
+    const id = profile.vehicleCondition?.[q.vehicleCondition];
+    if (id && k.vehicleCondition) set2(k.vehicleCondition, id);
+    else missing("Ara\xE7 durumu");
+  }
+  if (q.bodyType) {
+    const id = profile.bodyType?.[q.bodyType];
+    if (id && k.bodyType) set2(k.bodyType, id);
+    else missing(`Kasa tipi (${q.bodyType})`);
+  }
+  if (q.enginePower) {
+    const id = profile.enginePower?.[q.enginePower];
+    if (id && k.enginePower) {
+      set2(k.enginePower, id);
+      if (Object.values(profile.enginePower ?? {}).filter((x) => x === id).length > 1 && profile.caveats?.enginePower) notes.push(profile.caveats.enginePower);
+    } else missing("Motor g\xFCc\xFC");
+  }
+  if (q.engineVolume) {
+    const id = profile.engineVolume?.[q.engineVolume];
+    if (id && k.engineVolume) {
+      set2(k.engineVolume, id);
+      if (Object.values(profile.engineVolume ?? {}).filter((x) => x === id).length > 1 && profile.caveats?.engineVolume) notes.push(profile.caveats.engineVolume);
+    } else missing("Motor hacmi");
+  }
+  if (q.drivetrain) {
+    const id = profile.drivetrain[q.drivetrain];
+    if (id) {
+      set2(k.drivetrain, id);
+      if (q.drivetrain === "awd" && profile.caveats?.drivetrain) notes.push(profile.caveats.drivetrain);
+    } else missing(`\xC7eki\u015F (${q.drivetrain})`);
+  }
+  if (q.exchange !== void 0) set2(PARAMS.exchange.key, q.exchange ? "yes" : "no");
+  if (q.listedWithin) set2(PARAMS.listedWithin.key, LISTED_WITHIN_VALUES[q.listedWithin]);
+  if (q.unpaintedOnly) set2(PARAMS.unpainted.key, "true");
+  if (q.noReplacedParts) set2(PARAMS.noReplacedParts.key, "true");
+  if (q.noHeavyDamage) set2(k.heavyDamage, profile.heavyDamage.no);
+  if (q.warranty !== void 0) {
+    if (profile.warranty && k.warranty) set2(k.warranty, q.warranty ? profile.warranty.yes : profile.warranty.no);
+    else missing("Servis garantisi");
+  }
+  set2(PARAMS.sorting.key, SORTING_VALUES[q.sort]);
+  if (q.page && q.page > 1) set2(PARAMS.pagingOffset.key, (q.page - 1) * PAGE_SIZE);
+  return { query: params.toString(), notes };
+}
+function buildSearchUrls(q) {
+  const models = q.models && q.models.length > 0 ? q.models : [null];
+  const queries = /* @__PURE__ */ new Map();
+  const queryFor = (profile) => {
+    let r = queries.get(profile.id);
+    if (!r) {
+      r = buildQuery(q, profile);
+      queries.set(profile.id, r);
+    }
+    return r;
+  };
+  const byUrl = /* @__PURE__ */ new Map();
+  const add2 = (path11, label, profile, extra) => {
+    const { query, notes } = queryFor(profile);
     if (q.city) label += ` - ${q.city}`;
-    const url2 = `${BASE}${path9}${query ? `?${query}` : ""}`;
+    const url2 = `${BASE}${path11}${query ? `?${query}` : ""}`;
     const allNotes = [...extra, ...notes];
     const prev2 = byUrl.get(url2);
     if (prev2) {
       prev2.label += `, ${label}`;
       if (extra.length) prev2.note = [prev2.note, ...extra].filter(Boolean).join(" ");
-      continue;
+      return;
     }
     byUrl.set(url2, { label, url: url2, ...allNotes.length ? { note: allNotes.join(" ") } : {} });
+  };
+  for (const model of models) {
+    if (!q.brand && model === null) {
+      add2("/otomobil", "Otomobil", CATEGORY_PROFILES.otomobil, []);
+      continue;
+    }
+    const res = resolveVehicle(q.brand, model);
+    if (res.targets.length > 0) {
+      for (const t of res.targets) {
+        const profile2 = CATEGORY_PROFILES[t.category];
+        const prefix = t.category === "otomobil" ? "" : `${CATEGORY_LABELS[t.category]}: `;
+        add2(`/${t.path}`, `${prefix}${t.label}`, profile2, [...res.notes, ...t.notes]);
+      }
+      continue;
+    }
+    const profile = CATEGORY_PROFILES.otomobil;
+    if (q.brand && model) {
+      const guess = slugify2(`${canonicalBrand(q.brand)} ${model}`);
+      add2(`/${guess}`, `${q.brand} ${model}`, profile, [
+        `"${q.brand}" markas\u0131 sahibinden katalo\u011Funda bulunamad\u0131; yol tahmin edildi (/${guess}) ve do\u011Frulanmad\u0131. Sonu\xE7 bo\u015Fsa markay\u0131/modeli panelden se\xE7in.`
+      ]);
+    } else if (q.brand) {
+      const guess = slugify2(canonicalBrand(q.brand));
+      add2(`/${guess}`, q.brand, profile, [
+        `"${q.brand}" markas\u0131 sahibinden katalo\u011Funda bulunamad\u0131; yol tahmin edildi (/${guess}) ve do\u011Frulanmad\u0131.`
+      ]);
+    } else {
+      add2("/otomobil", model ?? "Otomobil", profile, [
+        ...res.notes,
+        `"${model}" i\xE7in marka bilinmiyor; genel otomobil sayfas\u0131 kullan\u0131ld\u0131, modeli panelden se\xE7in.`
+      ]);
+    }
   }
   return [...byUrl.values()];
 }
@@ -82718,7 +83217,15 @@ var BODY_LABELS = {
   sedan: ["sedan"],
   "station-wagon": ["station wagon", "stationwagon"],
   mpv: ["mpv", "minivan"],
-  roadster: ["roadster"]
+  roadster: ["roadster"],
+  crossover: ["crossover"],
+  pickup: ["pickup"],
+  suv: ["suv"],
+  "glass-van": ["camli van"],
+  "half-glass-van": ["yarim camli van"],
+  "panel-van": ["panel van"],
+  "refrigerated-panel-van": ["frigorifik panel van"],
+  minibus: ["minibus"]
 };
 function drivetrainOf(raw) {
   const f = foldTr(raw);
@@ -82816,8 +83323,8 @@ function evaluateQuery(l, q, opts = {}) {
     const hay = [l.series, l.model, l.title].map((s) => foldTr(s));
     const hit = q.models.some((m) => {
       const f = foldTr(m);
-      const fs8 = squash(m);
-      return f !== "" && hay.some((h) => h.includes(f) || squash(h).includes(fs8));
+      const fs9 = squash(m);
+      return f !== "" && hay.some((h) => h.includes(f) || squash(h).includes(fs9));
     });
     if (!hit) hardFail = true;
   }
@@ -82921,8 +83428,8 @@ function normalizedPairs(u) {
 function searchContextOf(urls) {
   const parsed = urls.map(parseUrl).filter((u) => u !== null);
   if (parsed.length === 0) return null;
-  const path9 = normalizePath(parsed[0].pathname);
-  const first2 = path9.split("/").filter(Boolean)[0] ?? null;
+  const path11 = normalizePath(parsed[0].pathname);
+  const first2 = path11.split("/").filter(Boolean)[0] ?? null;
   const category = first2 && !GENERIC_CATEGORIES.has(first2) ? first2 : null;
   let pairs = null;
   let sorting = null;
@@ -82942,8 +83449,8 @@ function searchContextOf(urls) {
   const query = pairs ? new URLSearchParams(pairs).toString() : "*";
   const order = ["unpainted", "noReplaced", "noHeavyDamage"];
   return {
-    searchKey: `${path9}?${query}`,
-    path: path9,
+    searchKey: `${path11}?${query}`,
+    path: path11,
     category,
     filters: order.filter((f) => flags.has(f)),
     sorting,
@@ -82966,7 +83473,17 @@ var BodyTypeSchema = external_exports.enum([
   "sedan",
   "station-wagon",
   "mpv",
-  "roadster"
+  "roadster",
+  // Arazi, SUV & Pickup kategorisi
+  "crossover",
+  "pickup",
+  "suv",
+  // Minivan & Panelvan kategorisi
+  "glass-van",
+  "half-glass-van",
+  "panel-van",
+  "refrigerated-panel-van",
+  "minibus"
 ]);
 var ColorSchema = external_exports.enum([
   "beige",
@@ -83163,7 +83680,9 @@ var ImportProvider = class {
   inboxDir;
   now;
   fileTime;
+  learner;
   constructor(opts) {
+    this.learner = opts.learner;
     this.store = opts.store;
     this.inboxDir = opts.inboxDir;
     this.now = opts.now;
@@ -83310,6 +83829,11 @@ var ImportProvider = class {
     };
     try {
       if (pageType === "search") {
+        try {
+          this.learner?.addFromHtml(html3);
+        } catch (err) {
+          log.warn("catalog learn failed", { file: file2, error: err instanceof Error ? err.message : String(err) });
+        }
         const { items, warnings, totalCount, pageUrls } = parseSearchPage(html3, ctx);
         for (const w of warnings) log.warn("search parse warning", { file: file2, warning: w });
         if (items.length === 0) {
@@ -83341,6 +83865,75 @@ var ImportProvider = class {
       return;
     }
     this.store.markFile(sha, markName, this.now(), PARSER_VERSION);
+  }
+};
+
+// src/sahibinden/catalog-learn.ts
+import fs6 from "node:fs";
+import path8 from "node:path";
+function extractCategoryTree(html3) {
+  const $2 = load(html3);
+  const out = [];
+  $2("#searchCategoryContainer li").each((_, li) => {
+    const cls = ($2(li).attr("class") ?? "").split(/\s+/).find((c) => /^cl[234]$/.test(c));
+    const a = $2(li).find("a").first();
+    const href = a.attr("href");
+    if (!cls || !href) return;
+    let p;
+    try {
+      p = new URL(href, "https://www.sahibinden.com").pathname.replace(/^\/+|\/+$/g, "");
+    } catch {
+      return;
+    }
+    if (!p || p.includes("/")) return;
+    out.push({ cl: cls, path: p, text: a.text().replace(/\s+/g, " ").replace(/\s*\(\s*[\d.,]+\s*\)\s*$/, "").trim() });
+  });
+  return out;
+}
+var CatalogLearner = class {
+  constructor(catalog2, file2) {
+    this.catalog = catalog2;
+    this.file = file2;
+  }
+  catalog;
+  file;
+  items = /* @__PURE__ */ new Map();
+  /** Dosyadaki öğrenilmiş yolları kataloğa uygular; bozuk/eksik dosya sessizce yok sayılır. */
+  load() {
+    let list = [];
+    try {
+      const raw = JSON.parse(fs6.readFileSync(this.file, "utf8"));
+      list = Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.path === "string" && /^cl[234]$/.test(i.cl)) : [];
+    } catch {
+      return 0;
+    }
+    for (const i of list) this.items.set(`${i.cl}:${i.path}`, i);
+    return this.catalog.learn(list);
+  }
+  /** Sayfa ağacını uygular; yeni kayıt varsa diske yazar. Eklenen sayısını döner. */
+  addFromHtml(html3) {
+    const tree = extractCategoryTree(html3);
+    if (tree.length === 0) return 0;
+    const added = this.catalog.learn(tree);
+    let fresh = false;
+    for (const i of tree) {
+      const key = `${i.cl}:${i.path}`;
+      if (!this.items.has(key)) {
+        this.items.set(key, i);
+        fresh = true;
+      }
+    }
+    if (fresh) this.save();
+    return added;
+  }
+  save() {
+    try {
+      fs6.mkdirSync(path8.dirname(this.file), { recursive: true });
+      const tmp = `${this.file}.tmp`;
+      fs6.writeFileSync(tmp, JSON.stringify({ version: 1, items: [...this.items.values()] }));
+      fs6.renameSync(tmp, this.file);
+    } catch {
+    }
   }
 };
 
@@ -83978,8 +84571,8 @@ function createServer(deps) {
 }
 
 // src/store/json-store.ts
-import fs6 from "node:fs";
-import path8 from "node:path";
+import fs7 from "node:fs";
+import path9 from "node:path";
 var BACKUP_NAME = "store.v1-backup.json";
 var empty2 = () => ({ version: 2, listings: {}, importedFiles: {}, searches: {}, watchlist: {} });
 var JsonStore = class {
@@ -83998,7 +84591,7 @@ var JsonStore = class {
     if (this.data) return;
     let raw;
     try {
-      raw = fs6.readFileSync(this.filePath, "utf8");
+      raw = fs7.readFileSync(this.filePath, "utf8");
     } catch (err) {
       if (err.code === "ENOENT") {
         this.data = empty2();
@@ -84050,7 +84643,7 @@ var JsonStore = class {
   }
   mtimeMs() {
     try {
-      return fs6.statSync(this.filePath).mtimeMs;
+      return fs7.statSync(this.filePath).mtimeMs;
     } catch {
       return null;
     }
@@ -84067,19 +84660,19 @@ var JsonStore = class {
   }
   save() {
     this.load();
-    const dir = path8.dirname(this.filePath);
-    fs6.mkdirSync(dir, { recursive: true });
+    const dir = path9.dirname(this.filePath);
+    fs7.mkdirSync(dir, { recursive: true });
     if (this.v1Raw !== null) {
       try {
-        fs6.writeFileSync(path8.join(dir, BACKUP_NAME), this.v1Raw, { encoding: "utf8", flag: "wx" });
+        fs7.writeFileSync(path9.join(dir, BACKUP_NAME), this.v1Raw, { encoding: "utf8", flag: "wx" });
       } catch (err) {
         if (err.code !== "EEXIST") throw err;
       }
       this.v1Raw = null;
     }
     const tmp = `${this.filePath}.tmp`;
-    fs6.writeFileSync(tmp, JSON.stringify(this.data), "utf8");
-    fs6.renameSync(tmp, this.filePath);
+    fs7.writeFileSync(tmp, JSON.stringify(this.data), "utf8");
+    fs7.renameSync(tmp, this.filePath);
     this.dirty = false;
     this.loadedMtimeMs = this.mtimeMs();
   }
@@ -84215,12 +84808,15 @@ var JsonStore = class {
 
 // src/index.ts
 var store = new JsonStore(storePath);
+var learner = new CatalogLearner(catalog, path10.join(homeDir, "catalog-learned.json"));
+learner.load();
 var provider = new ImportProvider({
   store,
+  learner,
   inboxDir,
   now: () => (/* @__PURE__ */ new Date()).toISOString(),
   // Yakalama zamanı = sayfanın dosyaya kaydedildiği an (mtime); ImportProvider now ile kırpar.
-  fileTime: (f) => fs7.statSync(f).mtime
+  fileTime: (f) => fs8.statSync(f).mtime
 });
 for (const w of browserConfig.warnings) log.warn(w);
 var live = browserConfig.enabled ? new BrowserProvider({

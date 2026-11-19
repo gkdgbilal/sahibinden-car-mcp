@@ -31,6 +31,8 @@ export interface ImportProviderOptions {
   now: () => string;
   /** Dosyanın yakalanma zamanı (mtime). Verilmezse/null dönerse `now`; sonuç `now`'a kırpılır. */
   fileTime?: (file: string) => Date | null;
+  /** Arama sayfalarının sidebar kategori ağacından marka/seri/motor yollarını öğrenir (katalog zenginleştirme). */
+  learner?: { addFromHtml(html: string): number };
 }
 
 export class ImportProvider implements Provider {
@@ -39,8 +41,10 @@ export class ImportProvider implements Provider {
   private readonly inboxDir: string;
   private readonly now: () => string;
   private readonly fileTime: ((file: string) => Date | null) | undefined;
+  private readonly learner: ImportProviderOptions['learner'];
 
   constructor(opts: ImportProviderOptions) {
+    this.learner = opts.learner;
     this.store = opts.store;
     this.inboxDir = opts.inboxDir;
     this.now = opts.now;
@@ -215,6 +219,11 @@ export class ImportProvider implements Provider {
     };
     try {
       if (pageType === 'search') {
+        try {
+          this.learner?.addFromHtml(html);
+        } catch (err) {
+          log.warn('catalog learn failed', { file, error: err instanceof Error ? err.message : String(err) });
+        }
         const { items, warnings, totalCount, pageUrls } = parseSearchPage(html, ctx);
         for (const w of warnings) log.warn('search parse warning', { file, warning: w });
         if (items.length === 0) {

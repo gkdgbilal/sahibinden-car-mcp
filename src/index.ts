@@ -1,18 +1,25 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
-import { browserConfig, inboxDir, storePath } from './config.js';
+import path from 'node:path';
+import { browserConfig, homeDir, inboxDir, storePath } from './config.js';
 import { CdpPageSource } from './browser/cdp-page-source.js';
 import { RateLimiter } from './browser/rate-limiter.js';
 import { BrowserProvider } from './providers/browser-provider.js';
 import { ImportProvider } from './providers/import-provider.js';
+import { catalog } from './sahibinden/catalog.js';
+import { CatalogLearner } from './sahibinden/catalog-learn.js';
 import { createServer } from './server.js';
 import { JsonStore } from './store/json-store.js';
 import { log } from './utils/logger.js';
 
 const store = new JsonStore(storePath);
+// Katalog: pakete gömülü (siteden toplanmış) + kullanıcının içe aktardığı arama sayfalarından öğrenilen motor yolları.
+const learner = new CatalogLearner(catalog, path.join(homeDir, 'catalog-learned.json'));
+learner.load();
 const provider = new ImportProvider({
   store,
+  learner,
   inboxDir,
   now: () => new Date().toISOString(),
   // Yakalama zamanı = sayfanın dosyaya kaydedildiği an (mtime); ImportProvider now ile kırpar.

@@ -1,0 +1,18 @@
+seat|Seat
+skoda|Skoda
+smart|Smart
+subaru|Subaru
+suzuki|Suzuki
+tata|Tata
+tesla|Tesla
+the-london-taxi|The London Taxi
+tofas|Tofaş
+togg|TOGG
+toyota|Toyota
+vanderhall|Vanderhall
+volkswagen|Volkswagen
+volta|Volta
+volvo|Volvo
+xev|XEV
+yuki|Yuki
+zlin-motors|Zlin Motors

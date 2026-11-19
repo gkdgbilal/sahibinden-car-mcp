@@ -74,6 +74,7 @@ export function detectPageType(html: string): PageType {
   if (
     title.includes('just a moment') ||
     title.includes('bir dakika') || // Türkçe yerelleştirilmiş Cloudflare sayfası: "Bir dakika lütfen..."
+    title.startsWith('2 asamali dogrulama') || // sahibinden'in kendi doğrulama kapısı (otomatik istek hızı aşılınca)
     html.includes('_cf_chl_opt') ||
     html.includes('challenges.cloudflare.com') ||
     html.includes('/cdn-cgi/challenge-platform/') ||

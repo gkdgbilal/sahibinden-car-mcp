@@ -9,7 +9,7 @@ import type { BrowserSession, NavResult, PageSource, Tab } from './page-source.j
  */
 const QUICK_KIND_EXPR = `(() => {
   const t = (document.title || '').toLowerCase();
-  if (t.includes('just a moment') || t.includes('bir dakika') ||
+  if (t.includes('just a moment') || t.includes('bir dakika') || /^\\s*2 a[şs]amal[ıi] do[ğg]rulama/.test(t) ||
       document.querySelector('#challenge-form, .cf-turnstile, script[src*="/cdn-cgi/challenge-platform/"]')) return 'challenge';
   if (document.querySelector('tr.searchResultsItem[data-id], #searchResultsTable, .classifiedInfoList')) return 'ready';
   return document.readyState === 'complete' ? 'complete' : 'loading';

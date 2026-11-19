@@ -1,0 +1,12 @@
+{
+  "note": "Canlı sitede elle/ayrı sayfa isteğiyle doğrulanmış ek yollar. otomobil: Mercedes C serisi motorları ve Opel Astra 1.3 CDTI (2026-11-19 önceki oturum), BMW 3 serisi motorları ve BMW SUV serileri (2026-11-19, sidebar). SUV Land Rover modelleri (2026-11-19).",
+  "engines": {
+    "otomobil:mercedes-benz:c-serisi": ["c-200-d", "c-200-d-bluetec", "c-200-cdi"],
+    "otomobil:opel:astra": ["1.3-cdti"],
+    "otomobil:bmw:3-serisi": ["315","316","316ci","316i","316ti","318ci","318d","318i","318is","318tds","318ti","320cd","320ci","320d","320d-gt","320d-xdrive","320d-xdrive-gt","320i","320i-ed","320si","320td","323ci","323i","323ti","324d","325ci","325d","325e","325i","325is","325i-xdrive","325td","325tds","325ti","325xi","328ci","328i","330ci","330d","330e-xdrive","330i","330i-xdrive","330xd","330xi","335d","335i","340d-xdrive","340i-xdrive"]
+  },
+  "suvSeries": {
+    "bmw": { "complete": true, "series": ["ix","ix1","ix2","ix3","x1","x2","x3","x4","x5","x6","x7","xm"] },
+    "land-rover": { "complete": false, "series": ["range-rover-evoque","range-rover-sport","range-rover-velar","range-rover","discovery-sport","discovery","defender","freelander"] }
+  }
+}

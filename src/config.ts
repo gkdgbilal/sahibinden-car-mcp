@@ -2,7 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { loadBrowserConfig } from './browser/browser-config.js';
 
-export const VERSION = '0.2.1';
+export const VERSION = '0.2.2';
 
 /**
  * Parser davranışı değişince artırılır. Kayıtlı parserVersion bundan eskiyse (sürümsüz = 1)

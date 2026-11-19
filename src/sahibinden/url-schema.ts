@@ -62,7 +62,7 @@ export const SELLER_TYPE_IDS: Record<SellerType, string> = {
   owner: '32474', dealer: '32475', 'authorized-dealer': '1160380',
 };
 
-export const BODY_TYPE_IDS: Record<BodyType, string> = {
+export const BODY_TYPE_IDS: Partial<Record<BodyType, string>> = {
   cabrio: '240', coupe: '48626', 'coupe-4-door': '1263542', 'hatchback-3-door': '20',
   'hatchback-5-door': '62068', sedan: '250', 'station-wagon': '19', mpv: '1197465', roadster: '1197466',
 };
@@ -219,4 +219,151 @@ export const SUV_COLOR_IDS: Partial<Record<Color, string>> = {
   beige: '654790', white: '33787', burgundy: '33794', 'smoke-gray': '1104894', gray: '33785', 'silver-gray': '210127', brown: '33796',
   red: '33788', navy: '33790', blue: '33792', purple: '47348', pink: '654450', yellow: '33791', black: '33786', champagne: '675108',
   orange: '33797', green: '33789',
+};
+
+// ---------------------------------------------------------------------------------------------------------
+// Kategori profilleri (canlı site, 2026-11-19): her kategori kendi parametre adlarını ve değer kimliklerini kullanır.
+// Kaynak: /bmw-3-serisi, /arazi-suv-pickup-bmw-x5 ve /minivan-panelvan-fiat sayfalarındaki sidebar filtre bağlantıları
+// (etiket = değer) ve aralık alanlarının input adları. Başka kategorideki kimlik sessizce yok sayılır; karıştırma.
+// ---------------------------------------------------------------------------------------------------------
+export type CategoryId = 'otomobil' | 'arazi-suv-pickup' | 'minivan-panelvan';
+
+export const CATEGORY_LABELS: Record<CategoryId, string> = {
+  otomobil: 'Otomobil',
+  'arazi-suv-pickup': 'SUV',
+  'minivan-panelvan': 'Minivan & Panelvan',
+};
+
+type IdMap<K extends string> = Partial<Record<K, string>>;
+
+export interface CategoryProfile {
+  id: CategoryId;
+  /** Yol öneki: otomobil "" (örn. /bmw-3-serisi), diğerleri "arazi-suv-pickup-" biçiminde. */
+  pathPrefix: string;
+  keys: {
+    yearMin: string; yearMax: string; kmMin: string; kmMax: string;
+    transmission: string; fuel: string; sellerType: string; color: string; drivetrain: string; heavyDamage: string;
+    vehicleCondition?: string; bodyType?: string; enginePower?: string; engineVolume?: string; warranty?: string;
+  };
+  transmission: IdMap<Transmission>;
+  fuel: IdMap<Fuel>;
+  sellerType: IdMap<SellerType>;
+  color: IdMap<Color>;
+  drivetrain: IdMap<Drivetrain>;
+  heavyDamage: { yes: string; no: string };
+  vehicleCondition?: IdMap<VehicleCondition>;
+  bodyType?: IdMap<BodyType>;
+  enginePower?: IdMap<EnginePower>;
+  engineVolume?: IdMap<EngineVolume>;
+  warranty?: { yes: string; no: string };
+  /** Kimliği tam karşılamayan eşlemeler için kullanıcıya gösterilecek açıklamalar (ör. birleşik aralıklar). */
+  caveats?: Partial<Record<'drivetrain' | 'engineVolume' | 'enginePower', string>>;
+}
+
+/** Bir motor gücü/hacmi kimlik tablosu: anahtar sırasına göre kimlikler; "aynı kimlik" tekrarları birleşik aralıktır. */
+const zipIds = <K extends string>(keys: readonly K[], ids: readonly string[]): IdMap<K> => {
+  const o: IdMap<K> = {};
+  keys.forEach((k, i) => { o[k] = ids[i]; });
+  return o;
+};
+const POWER_KEYS = Object.keys(ENGINE_POWER_IDS) as EnginePower[];
+const VOLUME_KEYS = Object.keys(ENGINE_VOLUME_IDS) as EngineVolume[];
+
+const OTOMOBIL: CategoryProfile = {
+  id: 'otomobil',
+  pathPrefix: '',
+  keys: {
+    yearMin: PARAMS.yearMin.key, yearMax: PARAMS.yearMax.key, kmMin: PARAMS.kmMin.key, kmMax: PARAMS.kmMax.key,
+    transmission: PARAMS.transmission.key, fuel: PARAMS.fuel.key, sellerType: PARAMS.sellerType.key, color: PARAMS.color.key,
+    drivetrain: PARAMS.drivetrain.key, heavyDamage: PARAMS.heavyDamage.key, vehicleCondition: PARAMS.vehicleCondition.key,
+    bodyType: PARAMS.bodyType.key, enginePower: PARAMS.enginePower.key, engineVolume: PARAMS.engineVolume.key, warranty: PARAMS.warranty.key,
+  },
+  transmission: TRANSMISSION_IDS,
+  fuel: FUEL_IDS,
+  sellerType: SELLER_TYPE_IDS,
+  color: COLOR_IDS,
+  drivetrain: DRIVETRAIN_IDS,
+  heavyDamage: HEAVY_DAMAGE_IDS,
+  vehicleCondition: VEHICLE_CONDITION_IDS,
+  bodyType: BODY_TYPE_IDS,
+  enginePower: ENGINE_POWER_IDS,
+  engineVolume: ENGINE_VOLUME_IDS,
+  warranty: WARRANTY_IDS,
+};
+
+const SUV: CategoryProfile = {
+  id: 'arazi-suv-pickup',
+  pathPrefix: 'arazi-suv-pickup-',
+  keys: {
+    yearMin: SUV_PARAMS.yearMin, yearMax: SUV_PARAMS.yearMax, kmMin: SUV_PARAMS.kmMin, kmMax: SUV_PARAMS.kmMax,
+    transmission: SUV_PARAMS.transmission, fuel: SUV_PARAMS.fuel, sellerType: SUV_PARAMS.sellerType, color: SUV_PARAMS.color,
+    drivetrain: SUV_PARAMS.drivetrain, heavyDamage: SUV_PARAMS.heavyDamage, vehicleCondition: SUV_PARAMS.vehicleCondition,
+    bodyType: 'a107181', enginePower: 'a2321', engineVolume: 'a2319', warranty: 'a87472', // a87472 = "Servis Garantisi"
+  },
+  transmission: SUV_TRANSMISSION_IDS,
+  fuel: SUV_FUEL_IDS,
+  sellerType: SUV_SELLER_IDS,
+  color: SUV_COLOR_IDS,
+  // SUV'da "AWD" ayrı değil: 4x4 (10122) tek seçenek; AWD isteği de buna eşlenir (caveat).
+  drivetrain: { ...SUV_DRIVETRAIN_IDS, awd: '10122' },
+  heavyDamage: SUV_HEAVY_DAMAGE_IDS,
+  vehicleCondition: SUV_CONDITION_IDS,
+  bodyType: { crossover: '1209954', pickup: '1209952', suv: '1209956' },
+  // Kategorinin kendi aralıkları: 4001-5000 cc ve 5001-6000 cc tek kutu; sitede daha ince ayrım yok.
+  enginePower: zipIds(POWER_KEYS, [
+    '1110290', '1110288', '74370', '74371', '74372', '74373', '74374', '74375', '74376', '74377', '74378', '74379',
+    '74380', '74381', '74382', '74383', '74384', '74385', '74386', '74387', '74388', '74389', '74390', '74391',
+  ]),
+  engineVolume: zipIds(VOLUME_KEYS, [
+    '620146', '62629', '62630', '62631', '62632', '62633', '62634', '62635', '62636', '62636', '1131548', '1131548', '1131550',
+  ]),
+  warranty: { yes: '675082', no: '675084' },
+  caveats: {
+    drivetrain: 'SUV kategorisinde AWD ve 4WD ayrı değil; "4x4" (10122) kullanıldı.',
+    engineVolume: 'SUV kategorisinde 4001-5000 cc ve 5001-6000 cc tek aralıktır; URL daha geniş aralığı getirebilir (yerel filtre kesindir).',
+  },
+};
+
+const MINIVAN: CategoryProfile = {
+  id: 'minivan-panelvan',
+  pathPrefix: 'minivan-panelvan-',
+  keys: {
+    yearMin: 'a767_min', yearMax: 'a767_max', kmMin: 'a766_min', kmMax: 'a766_max',
+    transmission: 'a3807', fuel: 'a1847', sellerType: 'a769', color: 'a2045', drivetrain: 'a107201', heavyDamage: 'a116447',
+    bodyType: 'a96780', enginePower: 'a4391', engineVolume: 'a4390',
+  },
+  transmission: { manual: '70940', automatic: '70941' },
+  fuel: { gasoline: '51668', diesel: '51669', lpg: '51667', electric: '1253353', hybrid: '1312764' },
+  sellerType: { owner: '37948', dealer: '37949', 'authorized-dealer': '1282749' },
+  color: {
+    beige: '61880', white: '61881', burgundy: '61882', 'smoke-gray': '1232194', gray: '61884', 'silver-gray': '61885',
+    brown: '1105988', red: '61888', navy: '61892', blue: '61893', purple: '61894', pink: '61895', yellow: '61896',
+    black: '61897', turquoise: '61901', orange: '61902', green: '61904',
+  },
+  drivetrain: { rwd: '1210973', fwd: '1210971', '4wd': '1210972', awd: '1210972' },
+  heavyDamage: { yes: '1263363', no: '1263362' },
+  bodyType: {
+    'glass-van': '1119668', 'half-glass-van': '1180829', 'panel-van': '1119672',
+    'refrigerated-panel-van': '1183345', minibus: '1171677',
+  },
+  // 501 hp ve üzeri tek kutu.
+  enginePower: zipIds(POWER_KEYS, [
+    '1129186', '1129188', '74406', '74407', '74408', '74409', '74410', '74411', '74412', '74413', '74414', '74415',
+    '74416', '74417', '74418', '74419', '74420', '74421', '74422', '74423', '74423', '74423', '74423', '74423',
+  ]),
+  // 5001 cc ve üzeri tek kutu.
+  engineVolume: zipIds(VOLUME_KEYS, [
+    '74395', '74396', '74397', '74398', '74399', '74400', '74401', '74402', '74403', '74404', '74405', '74405', '74405',
+  ]),
+  caveats: {
+    drivetrain: 'Minivan & Panelvan kategorisinde AWD ve 4WD ayrı değil; "4x4" (1210972) kullanıldı.',
+    enginePower: 'Minivan & Panelvan kategorisinde 501 hp ve üzeri tek aralıktır; URL daha geniş aralığı getirebilir (yerel filtre kesindir).',
+    engineVolume: 'Minivan & Panelvan kategorisinde 5001 cc ve üzeri tek aralıktır; URL daha geniş aralığı getirebilir (yerel filtre kesindir).',
+  },
+};
+
+export const CATEGORY_PROFILES: Record<CategoryId, CategoryProfile> = {
+  otomobil: OTOMOBIL,
+  'arazi-suv-pickup': SUV,
+  'minivan-panelvan': MINIVAN,
 };

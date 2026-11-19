@@ -15,7 +15,8 @@ describe('buildSearchUrls', () => {
     expect(urls[0]!.url).toBe(
       'https://www.sahibinden.com/volkswagen-golf?price_min=700000&price_max=900000&a5_min=2015&a4_max=150000&address_city=55&sorting=price_asc',
     );
-    expect(urls[0]!.note).toBeUndefined();
+    // VW serileri katalogda taranamadı: yol kurala göre türetilir ve bu açıkça not edilir.
+    expect(urls[0]!.note).toContain('doğrulanmadı');
   });
 
   it('doğrulanmış birleşik örnek: motor sluga nokta ile girer, vites + sıralama', () => {
@@ -145,7 +146,8 @@ describe('buildSearchUrls', () => {
 
   it('zod enum dışı değerleri reddeder', () => {
     expect(SearchQuerySchema.safeParse({ color: 'turuncu' }).success).toBe(false);
-    expect(SearchQuerySchema.safeParse({ bodyType: 'suv' }).success).toBe(false);
+    expect(SearchQuerySchema.safeParse({ bodyType: 'suv' }).success).toBe(true);
+    expect(SearchQuerySchema.safeParse({ bodyType: 'limousine' }).success).toBe(false);
     expect(SearchQuerySchema.safeParse({ listedWithin: '2days' }).success).toBe(false);
     expect(SearchQuerySchema.safeParse({ page: 0 }).success).toBe(false);
   });

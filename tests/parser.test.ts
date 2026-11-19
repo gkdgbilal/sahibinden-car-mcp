@@ -21,6 +21,9 @@ describe('detectPageType', () => {
   it('Türkçe Cloudflare doğrulama sayfası challenge', () => {
     expect(detectPageType(fx('challenge.tr.html'))).toBe('challenge');
   });
+  it('sahibinden "2 Aşamalı Doğrulama" kapısı challenge (2026-11-19: otomatik istek hızı aşılınca görüldü)', () => {
+    expect(detectPageType(fx('challenge.2fa.html'))).toBe('challenge');
+  });
   it('challenge işaretleri (başlıksız): platform betiği, turnstile, challenge-form', () => {
     for (const marker of [
       '<script src="/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1"></script>',

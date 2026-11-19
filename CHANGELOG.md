@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-11-19
+
+### Added
+- **Site-sourced vehicle catalog** (`src/sahibinden/catalog.json`, `catalog.ts`): category -> brand -> series/model -> engine paths read from sahibinden's own category tree (`#searchCategoryContainer`: `cl2` brand, `cl3` series, `cl4` engine) instead of guessing slugs. 96 car brands (78 with their full series lists, 566 series), 72 SUV and 41 minivan/panelvan brands. `search_cars` now resolves `brand` + `models` ("C200d", "320d", "3 Serisi 320d xDrive", "X5", "Astra 1.3 CDTI", "Egea") to the verified path, falls back to the series/brand page with a note when only part of the text matches, and lists the real series when a model is unknown. A model that exists in several categories/paths returns one URL per path.
+- **Per-category filter profiles** (`CATEGORY_PROFILES`): otomobil, SUV (`arazi-suv-pickup`) and minivan/panelvan each use their own parameter names and value IDs (read live from the category sidebars). SUV now also supports body type (`a107181`), engine power (`a2321`), engine volume (`a2319`), warranty (`a87472`), AWD (mapped to 4x4); minivan supports year/km (`a767`/`a766`), transmission `a3807`, fuel `a1847`, seller `a769`, colour `a2045`, drivetrain `a107201`, body `a96780`, power `a4391`, volume `a4390`, heavy damage `a116447`. Merged ranges and filters a category does not have are reported in `note` rather than silently dropped.
+- New body types: `crossover`, `pickup`, `suv` (SUV) and `glass-van`, `half-glass-van`, `panel-van`, `refrigerated-panel-van`, `minibus` (minivan).
+- **Catalog learning**: every search page you import (or browser mode reads) also teaches the catalog its sidebar engine/series paths (`~/.sahibinden-car-mcp/catalog-learned.json`), with no extra requests.
+- `scripts/build-catalog.mjs` + `scripts/catalog-data/` regenerate `catalog.json`; `docs/10-CATALOG.md` documents provenance and gaps.
+
+### Fixed
+- The "2 Aşamalı Doğrulama" gate page that sahibinden serves after a burst of automated requests is now recognised as a challenge (`detectPageType` and the CDP quick check), so browser mode stops instead of treating it as an unknown page.
+- Local brand filter alias `VW` = Volkswagen (and `Chevy`).
+
+### Known gaps
+- Series lists are not yet scraped for 18 car brands (Seat, Skoda, Smart, Subaru, Suzuki, Tata, Tesla, The London Taxi, Tofaş, TOGG, Toyota, Vanderhall, Volkswagen, Volta, Volvo, XEV, Yuki, Zlin Motors) nor for SUV/minivan brands (except BMW SUV and Land Rover). For those the path follows the verified naming rule (`{brand}-{slug(model)}`), is marked unverified in `note`, and becomes verified once a page of that brand is imported. Engine lists are only known for a few series until pages are imported.
+
 ## [0.2.1] - 2026-11-19
 
 ### Fixed
