@@ -26,7 +26,7 @@ Your browser (Chrome/Firefox)                 sahibinden-car-mcp (local, stdio)
                                                        ▼
                                         parser (label-based, cheerio) ──▶ local store.json
                                                        │
-                                  search_cars · get_listing · compare_cars · ping
+                                  search_cars · get_listing · compare_cars · rank_cars · market_stats · ping
 ```
 
 1. Ask Claude for a search. `search_cars` returns matching listings from your local store plus ready-made sahibinden search URL(s) for you to open.
@@ -101,6 +101,8 @@ For Claude Desktop, add this to `claude_desktop_config.json`:
 | `search_cars` | Filters and sorts imported listings; also returns sahibinden search URLs for you to open in your browser. **Every filter is applied both locally and in the URL** (only `page` is URL-only and `limit` local-only, by nature). Price filters are in `priceCurrency` (default TL); listings in another currency are excluded (no conversion) and counted in `excludedOtherCurrency`. Listings with a missing filter field are returned with an `unknownFields` marker (`unknown: 'include'`, default) or dropped and counted in `excludedUnknown` (`unknown: 'exclude'`). The output also lists `appliedFilters` and `urlOnlyFilters` (empty). Audit table: `docs/05-FILTER-AUDIT.md`. | `city`, `brand`, `models[]` (max 10), `priceMin`, `priceMax`, `transmission` (`manual`/`automatic`/`semi-automatic`), `fuel` (`gasoline`/`diesel`/`lpg`/`hybrid`/`electric`), `yearMin`, `yearMax`, `kmMin`, `kmMax`, `sort` (`price_asc` default, `price_desc`, `year_desc`, `year_asc`, `km_asc`, `km_desc`, `date_desc`, `date_asc`), `sellerType`, `bodyType`, `color`, `vehicleCondition`, `enginePower` (up to 601+ hp), `engineVolume`, `drivetrain`, `exchange`, `warranty`, `listedWithin` (`1day`...`30days`), `unpaintedOnly`, `noReplacedParts`, `noHeavyDamage`, `priceCurrency` (`TL` default, `USD`, `EUR`, `GBP`), `page` (URL only), `limit` (1-100, default 20), `unknown` (`include` default / `exclude`; old `includeUnknown: false` = `exclude`) |
 | `get_listing` | Full details of an imported listing (damage, paint/replaced parts, tramer, description, seller type). If only a search row is stored it returns a summary plus a hint to save the detail page. | `ref` (listing number or listing URL) |
 | `compare_cars` | Puts 2-10 listings side by side with age, km per year and price difference versus the set median. Market interpretation is left to Claude. | `refs[]` (2-10 listing numbers or URLs) |
+| `rank_cars` | **"Is this car worth buying?"** Filters the local store (same filters as `search_cars`), prices each listing against the km/year-adjusted median of its own model group, adds risk flags (damage, tramer, unusual km per year, risky phrases in the description with negation handling) and returns the top N with a score, a verdict (`strong-candidate`, `fair`, `overpriced`, `check-first`, `risky`, `no-baseline`), reasons and next steps. High-risk listings are listed separately under `avoid`. Asking prices, seller-declared damage; not buying advice. | the `search_cars` filters, `top` (1-20, default 5), `maxAgeDays` (default 30) |
+| `market_stats` | Segment statistics (median, quartiles, P10/P90, n) from the local store and a fair price band / position for one car (your own or a stored listing). Km and model-year differences are adjusted with transparent Theil-Sen slopes; damage and tramer are reported separately. Always pass `confidence` on to the user. | `segment`, `target` (`ref` or `year`+`km`[+`price`]), `damagePolicy`, `maxAgeDays`, `minSample` |
 | `import_listing_html` | Imports saved sahibinden search/listing pages. Without `path` it processes new files in the inbox; `path` must be inside the inbox (relative paths resolve against it). Detects half-loaded or challenge pages and reports them as skipped. | `path`, `html` (small snippets only, max 5 MB), `sourceUrl`, `force` |
 | `ping` | Health check: version, active provider, number of listings in the local store, inbox directory, and `browserMode` (`disabled` / `enabled`). | `msg` (optional) |
 | `browser_status` | **Only registered when browser mode is on.** Shows whether Chrome is reachable, rate-limit counters and any pending verification. Never opens sahibinden.com. | none |
@@ -246,7 +248,7 @@ Seller name, phone number and profile links are **not parsed and not stored**. O
 npm run build       # compile TypeScript to dist/
 npm run typecheck
 npm test            # vitest
-npm run smoke       # end-to-end check against dist/ in a temp home: browser mode off (5 tools), on without Chrome (8 tools), and a fake-page-source live flow; no real Chrome or network
+npm run smoke       # end-to-end check against dist/ in a temp home: browser mode off (7 tools), on without Chrome (10 tools), and a fake-page-source live flow; no real Chrome or network
 npm run chrome      # optional browser mode: start the dedicated Chrome window (repo clone only); add -- --dry-run to preview
 npm run demo        # regenerate docs/assets/demo.svg from real tool calls on synthetic fixtures
 ```

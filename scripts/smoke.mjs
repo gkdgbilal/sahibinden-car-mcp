@@ -1,6 +1,6 @@
 // Bağımlılıksız smoke testi (gerçek Chrome/ağ YOK):
-//   Koşu A: tarayıcı modu kapalı (varsayılan) -> stdio, tam 5 tool.
-//   Koşu B: SAHIBINDEN_BROWSER_MODE=on + boş profil -> stdio, 8 tool, Chrome yok -> 'not-running'.
+//   Koşu A: tarayıcı modu kapalı (varsayılan) -> stdio, tam 7 tool.
+//   Koşu B: SAHIBINDEN_BROWSER_MODE=on + boş profil -> stdio, 10 tool, Chrome yok -> 'not-running'.
 //   Koşu C: dist/ modülleri süreç içinde, sahte sayfa kaynağıyla live_search / live_get_listings akışı.
 //   Koşu D: price_drops handler + get_listing.tracking (dist, süreç içi, geçici store).
 import { spawn } from 'node:child_process';
@@ -76,7 +76,7 @@ async function initialize(c) {
   c.send({ jsonrpc: '2.0', method: 'notifications/initialized' });
 }
 
-const BASE = ['compare_cars', 'get_listing', 'import_listing_html', 'ping', 'search_cars'];
+const BASE = ['compare_cars', 'get_listing', 'import_listing_html', 'market_stats', 'ping', 'rank_cars', 'search_cars'];
 const LIVE = ['browser_status', 'live_get_listings', 'live_search'];
 
 try {
@@ -225,7 +225,7 @@ try {
   await creq('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'smoke', version: '1' } });
   transport.onmessage({ jsonrpc: '2.0', method: 'notifications/initialized' });
   const cNames = ((await creq('tools/list')).result?.tools ?? []).map((t) => t.name).sort();
-  assert(cNames.length === 8, `koşu C: 8 tool bekleniyordu, ${cNames.length}`);
+  assert(cNames.length === 10, `koşu C: 10 tool bekleniyordu, ${cNames.length}`);
 
   const cSearch = (await creq('tools/call', { name: 'live_search', arguments: { models: ['Golf'], maxPages: 1 } })).result?.structuredContent;
   assert(cSearch?.live?.status === 'ok', `koşu C live_search durumu: ${cSearch?.live?.status}`);

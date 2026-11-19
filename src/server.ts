@@ -16,6 +16,12 @@ import {
   IMPORT_LISTING_HTML_DESCRIPTION, importListingHtmlHandler, importListingHtmlInput, importListingHtmlOutput,
 } from './tools/import-listing-html.js';
 import {
+  MARKET_STATS_DESCRIPTION, marketStatsHandler, marketStatsInput, marketStatsOutput,
+} from './tools/market-stats.js';
+import {
+  RANK_CARS_DESCRIPTION, rankCarsHandler, rankCarsInput, rankCarsOutput,
+} from './tools/rank-cars.js';
+import {
   BROWSER_STATUS_DESCRIPTION, browserStatusHandler, browserStatusInput, browserStatusOutput,
 } from './tools/browser-status.js';
 import {
@@ -76,6 +82,17 @@ export function createServer(deps: ToolDeps) {
       outputSchema: importListingHtmlOutput,
     },
     (args) => run('import_listing_html', () => importListingHtmlHandler(args, deps)),
+  );
+
+  server.registerTool(
+    'market_stats',
+    { title: 'Piyasa istatistiği', description: MARKET_STATS_DESCRIPTION, inputSchema: marketStatsInput, outputSchema: marketStatsOutput },
+    (args) => run('market_stats', () => marketStatsHandler(args, deps)),
+  );
+  server.registerTool(
+    'rank_cars',
+    { title: 'En mantıklı ilanlar', description: RANK_CARS_DESCRIPTION, inputSchema: rankCarsInput, outputSchema: rankCarsOutput },
+    (args) => run('rank_cars', () => rankCarsHandler(args, deps)),
   );
 
   // Tarayıcı modu (varsayılan KAPALI): yalnızca deps.live verilmişse kaydedilir; aksi halde tool listesi 5 tool'dur.

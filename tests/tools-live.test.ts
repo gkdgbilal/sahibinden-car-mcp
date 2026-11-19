@@ -85,15 +85,15 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 describe('tool kaydı (S6)', () => {
-  const BASE = ['compare_cars', 'get_listing', 'import_listing_html', 'ping', 'search_cars'];
+  const BASE = ['compare_cars', 'get_listing', 'import_listing_html', 'market_stats', 'ping', 'rank_cars', 'search_cars'];
   const LIVE = ['browser_status', 'live_get_listings', 'live_search'];
 
-  it('live yokken tam 5 tool; canlı tool yok', async () => {
+  it('live yokken tam 7 tool; canlı tool yok', async () => {
     const s = await rpc({ provider, nowYear: () => 2026 });
     expect((await s.tools()).map((t) => t.name).sort()).toEqual(BASE);
   });
 
-  it('live varken 8 tool; açıklamalar Claude yönlendirmesini içerir', async () => {
+  it('live varken 10 tool; açıklamalar Claude yönlendirmesini içerir', async () => {
     const s = await rpc({ provider, nowYear: () => 2026, live: makeLive() });
     const tools = await s.tools();
     expect(tools.map((t) => t.name).sort()).toEqual([...BASE, ...LIVE].sort());

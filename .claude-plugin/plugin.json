@@ -1,6 +1,6 @@
 {
   "name": "sahibinden-car",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "sahibinden.com ikinci el otomobil ilanlarını, kullanıcının kendi kaydettiği sayfalardan arar, inceler, karşılaştırır ve en mantıklı ilanları sıralar (MCP sunucusu + skill).",
   "author": { "name": "Bilal Gökdağ" },
   "homepage": "https://github.com/gkdgbilal/sahibinden-car-mcp",

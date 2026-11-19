@@ -35102,7 +35102,7 @@ function handleCatchall(proms, input2, payload, ctx, def, inst, abortEarly) {
     }
     const r = _catchall.run({ value: input2[key], issues: [] }, ctx);
     if (r instanceof Promise) {
-      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input2, optin, optout)));
+      proms.push(r.then((r3) => handlePropertyResult(r3, payload, key, input2, optin, optout)));
     } else {
       handlePropertyResult(r, payload, key, input2, optin, optout);
     }
@@ -35190,7 +35190,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
       const optout = el._zod.optout;
       const r = el._zod.run({ value: input2[key], issues: [] }, ctx);
       if (r instanceof Promise) {
-        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input2, optin, optout)));
+        proms.push(r.then((r3) => handlePropertyResult(r3, payload, key, input2, optin, optout)));
       } else {
         handlePropertyResult(r, payload, key, input2, optin, optout);
       }
@@ -36617,7 +36617,7 @@ var $ZodCustom = /* @__PURE__ */ $constructor("$ZodCustom", (inst, def) => {
     const input2 = payload.value;
     const r = def.fn(input2);
     if (r instanceof Promise) {
-      return r.then((r2) => handleRefineResult(r2, payload, input2, inst));
+      return r.then((r3) => handleRefineResult(r3, payload, input2, inst));
     }
     handleRefineResult(r, payload, input2, inst);
     return;
@@ -66035,7 +66035,7 @@ function loadBrowserConfig(env, homeDir2) {
 }
 
 // src/config.ts
-var VERSION = "0.2.2";
+var VERSION = "0.3.0";
 var PARSER_VERSION = 3;
 var homeDir = process.env.SAHIBINDEN_MCP_HOME ?? path2.join(os.homedir(), ".sahibinden-car-mcp");
 var inboxDir = path2.join(homeDir, "inbox");
@@ -84137,6 +84137,25 @@ function lifecycleOf(view, searches, now, notSeenDays) {
   };
 }
 
+// src/analytics/category.ts
+var underPrefix = (full, prefix) => {
+  if (prefix === "") return null;
+  if (full === prefix) return "";
+  return full.startsWith(`${prefix}-`) ? full.slice(prefix.length + 1) : null;
+};
+function categoryMatches(view, searches, category) {
+  const want = category.toLowerCase();
+  for (const o of view.observations) {
+    if (o.searchKey !== void 0 && searches[o.searchKey]?.category === want) return true;
+  }
+  const { brand, series, model } = view.best;
+  if (!brand || !series) return false;
+  const rest = underPrefix(want, slugify2(`${brand} ${series}`));
+  if (rest === null) return false;
+  if (rest === "") return true;
+  return model ? underPrefix(slugify2(model), rest) !== null : false;
+}
+
 // src/tools/price-drops.ts
 var DropFilterSchema = SearchQuerySchema.pick({
   city: true,
@@ -84398,6 +84417,1200 @@ async function importListingHtmlHandler(input2, deps) {
   return deps.provider.ingest(input2);
 }
 
+// src/analytics/stats.ts
+function quantile7(sorted, p) {
+  if (sorted.length === 0) throw new Error("quantile7: bo\u015F dizi");
+  if (!(p >= 0 && p <= 1)) throw new Error("quantile7: p 0 ile 1 aras\u0131nda olmal\u0131");
+  const h = (sorted.length - 1) * p;
+  const lo = Math.floor(h);
+  const hi = Math.ceil(h);
+  const a = sorted[lo];
+  const b = sorted[hi];
+  return lo === hi ? a : a + (h - lo) * (b - a);
+}
+var ascending = (values) => values.slice().sort((a, b) => a - b);
+function median2(values) {
+  return quantile7(ascending(values), 0.5);
+}
+function describe3(values) {
+  const s = ascending(values);
+  if (s.length === 0) throw new Error("describe: bo\u015F dizi");
+  const med = quantile7(s, 0.5);
+  const base = { n: s.length, min: s[0], median: med, max: s[s.length - 1] };
+  if (s.length < 5) return { ...base, p10: null, q1: null, q3: null, p90: null, iqrPct: null };
+  const q1 = quantile7(s, 0.25);
+  const q3 = quantile7(s, 0.75);
+  return {
+    ...base,
+    p10: quantile7(s, 0.1),
+    q1,
+    q3,
+    p90: quantile7(s, 0.9),
+    iqrPct: med > 0 ? (q3 - q1) / med * 100 : null
+  };
+}
+function midrankPercentile(values, x) {
+  if (values.length === 0) throw new Error("midrankPercentile: bo\u015F dizi");
+  let below = 0;
+  let equal = 0;
+  for (const v of values) {
+    if (v < x) below++;
+    else if (v === x) equal++;
+  }
+  return (below + 0.5 * equal) / values.length * 100;
+}
+function pairwiseSlopes(points, minAbsDx = 0) {
+  const out = [];
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const dx = points[i][0] - points[j][0];
+      if (dx === 0 || Math.abs(dx) < minAbsDx) continue;
+      out.push((points[i][1] - points[j][1]) / dx);
+    }
+  }
+  return out;
+}
+function tukeyFences(values, k = 3) {
+  const s = ascending(values);
+  const q1 = quantile7(s, 0.25);
+  const q3 = quantile7(s, 0.75);
+  const iqr = q3 - q1;
+  return { lo: q1 - k * iqr, hi: q3 + k * iqr, q1, q3 };
+}
+
+// src/analytics/market.ts
+var MIN_PLAUSIBLE_PRICE = 25e3;
+var OUTLIER_MIN_N = 8;
+var KM_PAIR_MIN_DELTA = 1e4;
+var MIN_PAIRS = 10;
+var MIN_FIT_N = 12;
+var MIN_SHOWN_N = 5;
+var WINDOW_ADJ = { years: 2, km: 6e4 };
+var WINDOW_BAND = { years: 1, km: 3e4 };
+var OLD_OBSERVATION_DAYS = 30;
+var LOW_COVERAGE = 0.5;
+var KM_SLOPE_MIN = Math.log(0.96) / 1e4;
+var YEAR_SLOPE_MAX = Math.log(1.25);
+var r0 = (x) => Math.round(x);
+var r1 = (x) => Math.round(x * 10) / 10;
+var r2 = (x) => Math.round(x * 100) / 100;
+var medOrNull = (v, minN = 3) => v.length >= minN ? r0(median2(v)) : null;
+var trNum = (x, digits = 1) => x.toFixed(digits).replace(".", ",");
+var latestAt = (obs) => {
+  let t = Number.NEGATIVE_INFINITY;
+  for (const o of obs) t = Math.max(t, observationTime(o.at));
+  return t;
+};
+var roundDist = (d) => ({
+  n: d.n,
+  min: r0(d.min),
+  p10: d.p10 === null ? null : r0(d.p10),
+  q1: d.q1 === null ? null : r0(d.q1),
+  median: r0(d.median),
+  q3: d.q3 === null ? null : r0(d.q3),
+  p90: d.p90 === null ? null : r0(d.p90),
+  max: r0(d.max),
+  iqrPct: d.iqrPct === null ? null : r1(d.iqrPct)
+});
+function detailGroup(best) {
+  const d = best;
+  if (d.heavyDamage === true) return "heavy";
+  const parts = d.damage && d.damage.length > 0 ? d.damage : null;
+  if (!parts) return "unknown";
+  if (parts.some((p) => p.status === "changed")) return "replaced";
+  if (parts.some((p) => p.status === "painted" || p.status === "local-painted")) return "painted";
+  return "clean";
+}
+function damageGroupOf(view, now, maxAgeDays) {
+  const since = now.getTime() - maxAgeDays * DAY_MS3;
+  const searchClean = view.observations.some(
+    (o) => o.kind === "search" && observationTime(o.at) >= since && (o.filters ?? []).includes("unpainted") && (o.filters ?? []).includes("noReplaced")
+  );
+  const detail = detailGroup(view.best);
+  if (detail !== "unknown") return { group: detail, evidence: "detail", conflict: searchClean && detail !== "clean" };
+  if (searchClean) return { group: "clean", evidence: "search-filter", conflict: false };
+  return { group: "unknown", evidence: "none", conflict: false };
+}
+var TRAMER_BUCKETS = ["none", "\u226425 bin", "25\u2013100 bin", ">100 bin", "mentioned", "unknown"];
+var bucketOfAmount = (a) => a <= 0 ? "none" : a <= 25e3 ? "\u226425 bin" : a <= 1e5 ? "25\u2013100 bin" : ">100 bin";
+function tramerBucketOf(view) {
+  if (!view.full) return null;
+  const d = view.best;
+  if (d.tramerStatus === "none") return "none";
+  if (d.tramerStatus === "mentioned") return "mentioned";
+  if (d.tramerAmount !== null && d.tramerAmount !== void 0) return bucketOfAmount(d.tramerAmount);
+  return "unknown";
+}
+function fitSlopes(rows, targetKm) {
+  const warnings = [];
+  const byYear = /* @__PURE__ */ new Map();
+  for (const r of rows) {
+    const list = byYear.get(r.year) ?? [];
+    list.push([r.km, Math.log(r.price)]);
+    byYear.set(r.year, list);
+  }
+  const kmSlopes = [];
+  for (const pts of byYear.values()) kmSlopes.push(...pairwiseSlopes(pts, KM_PAIR_MIN_DELTA));
+  let bKm = null;
+  if (kmSlopes.length < MIN_PAIRS) {
+    warnings.push(`Km d\xFCzeltmesi kapat\u0131ld\u0131: ayn\u0131 model y\u0131l\u0131nda yeterli ilan \xE7ifti yok (${kmSlopes.length} < ${MIN_PAIRS}).`);
+  } else {
+    const b = median2(kmSlopes);
+    if (b > 0 || b < KM_SLOPE_MIN) {
+      warnings.push(
+        `Km d\xFCzeltmesi kapat\u0131ld\u0131: veriden \xE7\u0131kan km e\u011Fimi makul aral\u0131\u011F\u0131n (10 bin km ba\u015F\u0131na %0 ile %-4) d\u0131\u015F\u0131nda (${trNum((Math.exp(b * 1e4) - 1) * 100)}%).`
+      );
+    } else bKm = b;
+  }
+  const adj = rows.map((r) => [r.year, Math.log(r.price) - (bKm ?? 0) * (r.km - targetKm)]);
+  const yearCounts = /* @__PURE__ */ new Map();
+  for (const r of rows) yearCounts.set(r.year, (yearCounts.get(r.year) ?? 0) + 1);
+  const yearsWith3 = [...yearCounts.values()].filter((c) => c >= 3).length;
+  const yearSlopes = pairwiseSlopes(adj, 0);
+  let bYear = null;
+  if (yearSlopes.length < MIN_PAIRS || yearsWith3 < 2) {
+    warnings.push(
+      `Model y\u0131l\u0131 d\xFCzeltmesi kapat\u0131ld\u0131: en az 2 farkl\u0131 model y\u0131l\u0131nda 3'er ilan ve 10 farkl\u0131 y\u0131ll\u0131 ilan \xE7ifti gerekir (\xE7ift: ${yearSlopes.length}, yeterli y\u0131l: ${yearsWith3}).`
+    );
+  } else {
+    const b = median2(yearSlopes);
+    if (b < 0 || b > YEAR_SLOPE_MAX) {
+      warnings.push(
+        `Model y\u0131l\u0131 d\xFCzeltmesi kapat\u0131ld\u0131: veriden \xE7\u0131kan y\u0131l e\u011Fimi makul aral\u0131\u011F\u0131n (y\u0131l ba\u015F\u0131na %0 ile +%25) d\u0131\u015F\u0131nda (${trNum((Math.exp(b) - 1) * 100)}%).`
+      );
+    } else bYear = b;
+  }
+  return { bKm, bYear, kmPairs: kmSlopes.length, yearPairs: yearSlopes.length, warnings };
+}
+function adjustedPrice(r, fit, target) {
+  return r.price * Math.exp((fit.bKm ?? 0) * (target.km - r.km) + (fit.bYear ?? 0) * (target.year - r.year));
+}
+function positionOf(values, dist, price) {
+  if (dist.n < MIN_SHOWN_N || dist.p10 === null || dist.q1 === null || dist.q3 === null || dist.p90 === null) return null;
+  const percentile = r0(midrankPercentile(values, price));
+  const vs = r1((price / dist.median - 1) * 100);
+  const band = price < dist.p10 ? "well-below" : price < dist.q1 ? "below" : price <= dist.q3 ? "typical" : price <= dist.p90 ? "above" : "well-above";
+  const where = {
+    "well-below": "P10'un alt\u0131nda",
+    below: "P10 ile Q1 aras\u0131",
+    typical: "Q1 ile Q3 aras\u0131 (orta \xE7eyrekler)",
+    above: "Q3 ile P90 aras\u0131",
+    "well-above": "P90'\u0131n \xFCzerinde"
+  };
+  const rel = Math.abs(vs) < 0.05 ? "medyanla ayn\u0131 d\xFCzeyde" : `medyan\u0131n %${trNum(Math.abs(vs))} ${vs > 0 ? "\xFCst\xFCnde" : "alt\u0131nda"}`;
+  const text3 = `Emsal ilanlar\u0131n yakla\u015F\u0131k %${percentile}'i bu fiyat\u0131n alt\u0131nda; ${rel} (${where[band]}). Bu bir de\u011Fer h\xFCkm\xFC de\u011Fildir: pazarl\u0131k pay\u0131, donan\u0131m ve arac\u0131n durumu ayr\u0131ca de\u011Ferlendirilmeli.`;
+  return { percentile, vsMedianPct: vs, band, text: text3 };
+}
+var LEVELS = ["low", "medium", "high"];
+var LEVEL_TR = { insufficient: "yetersiz", low: "d\xFC\u015F\xFCk", medium: "orta", high: "y\xFCksek" };
+function confidenceOf(c) {
+  const reasons = [];
+  const age = Math.floor(c.medianAgeDays);
+  const tail = `g\xF6zlem ya\u015F\u0131 medyan\u0131 ${age} g\xFCn`;
+  if (c.noBasis !== void 0 || c.n < 5) {
+    reasons.push(c.noBasis ?? "\xF6rnek yetersiz (n<5)");
+    return { level: "insufficient", summary: `n=${c.n}, g\xFCven yetersiz: ${reasons.join("; ")}`, reasons };
+  }
+  let i = c.n >= 25 ? 2 : c.n >= 10 ? 1 : 0;
+  if (i === 0) reasons.push("\xF6rnek az (n<10)");
+  const drop = (why) => {
+    if (i > 0) i--;
+    reasons.push(why);
+  };
+  if (c.medianAgeDays > OLD_OBSERVATION_DAYS) drop(`g\xF6zlem ya\u015F\u0131 medyan\u0131 ${age} g\xFCn (>${OLD_OBSERVATION_DAYS})`);
+  if (c.damagePolicyFallback) drop("hasar bilgisi bilinmeyen ilanlar da dahil edildi");
+  if (c.iqrPct !== null && c.iqrPct > 30) drop(`da\u011F\u0131l\u0131m geni\u015F (\xE7eyrekler aras\u0131 a\xE7\u0131kl\u0131k medyan\u0131n %${trNum(c.iqrPct, 0)}'i)`);
+  if (c.narrowBandOffCenter) drop("emsaller hedefin y\u0131l/km de\u011Ferinden uzakta toplan\u0131yor");
+  if (c.lowCoverage) drop("fiyata g\xF6re s\u0131ral\u0131 aramada kapsama d\xFC\u015F\xFCk: \xF6rnek ucuz uca kay\u0131k olabilir");
+  if (c.noTargetYearKm) {
+    reasons.push("hedefin y\u0131l/km bilgisi yok: emsal kar\u015F\u0131la\u015Ft\u0131rmas\u0131 yap\u0131lamad\u0131");
+    i = 0;
+  }
+  const level = LEVELS[i];
+  return {
+    level,
+    summary: `n=${c.n}, ${LEVEL_TR[level]} g\xFCven${reasons.length ? `: ${reasons.join("; ")}` : ""}; ${tail}`,
+    reasons
+  };
+}
+var latestPrice = (v) => {
+  for (let i = v.observations.length - 1; i >= 0; i--) {
+    const o = v.observations[i];
+    if (o.price !== null) return { price: o.price, currency: o.currency };
+  }
+  return { price: v.best.price, currency: v.best.currency };
+};
+var segmentFilterOf = (s) => {
+  const { category: _category, ...rest } = s;
+  return rest;
+};
+var segmentIsEmpty = (s) => s === void 0 || Object.values(s).every((v) => v === void 0 || Array.isArray(v) && v.length === 0);
+function deriveSegment(view, year, searches) {
+  const seg = {};
+  let category = null;
+  for (let i = view.observations.length - 1; i >= 0 && category === null; i--) {
+    const k = view.observations[i].searchKey;
+    if (k !== void 0) category = searches[k]?.category ?? null;
+  }
+  if (category === null && view.best.brand && view.best.series) category = slugify2(`${view.best.brand} ${view.best.series}`);
+  if (category) seg.category = category;
+  if (year !== null) {
+    seg.yearMin = year - 1;
+    seg.yearMax = year + 1;
+  }
+  if (view.best.transmission) seg.transmission = view.best.transmission;
+  if (view.best.fuel) seg.fuel = view.best.fuel;
+  return seg;
+}
+var describeSegment = (s) => {
+  const parts = [];
+  if (s.category) parts.push(`kategori ${s.category}`);
+  if (s.brand) parts.push(`marka ${s.brand}`);
+  if (s.models?.length) parts.push(`model ${s.models.join("/")}`);
+  if (s.yearMin !== void 0 || s.yearMax !== void 0) parts.push(`y\u0131l ${s.yearMin ?? "\u2026"}\u2013${s.yearMax ?? "\u2026"}`);
+  if (s.kmMin !== void 0 || s.kmMax !== void 0) parts.push(`km ${s.kmMin ?? 0}\u2013${s.kmMax ?? "\u2026"}`);
+  if (s.city) parts.push(`\u015Fehir ${s.city}`);
+  for (const k of ["transmission", "fuel", "sellerType", "bodyType", "enginePower", "engineVolume"]) {
+    if (s[k]) parts.push(`${k} ${s[k]}`);
+  }
+  return parts.length ? parts.join(", ") : "t\xFCm store";
+};
+function computeMarketStats(views, searches, input2, now, opts = {}) {
+  const tv = opts.targetView;
+  const ti = input2.target;
+  if (segmentIsEmpty(input2.segment) && tv === void 0) {
+    throw new Error("segment (en az category/brand/models) ya da target.ref gerekli");
+  }
+  const tYear = ti?.year ?? tv?.best.year ?? null;
+  const tKm = ti?.km ?? tv?.best.km ?? null;
+  let tPrice = ti?.price ?? null;
+  const warnTarget = [];
+  if (tPrice === null && tv) {
+    const lp = latestPrice(tv);
+    if ((lp.currency ?? "TL") !== "TL") warnTarget.push("Hedef ilan TL d\u0131\u015F\u0131 para birimiyle; fiyat konumu hesaplanmad\u0131 (d\xF6n\xFC\u015F\xFCm yap\u0131lmaz).");
+    else tPrice = lp.price;
+  }
+  const targetDamageInfo = tv ? damageGroupOf(tv, now, input2.maxAgeDays) : null;
+  const tDamage = ti?.damage ?? targetDamageInfo?.group ?? "unknown";
+  const hasTarget = ti !== void 0 || tv !== void 0;
+  const segment = segmentIsEmpty(input2.segment) ? deriveSegment(tv, tYear, searches) : input2.segment;
+  if (segmentIsEmpty(segment)) {
+    throw new Error("Hedef ilandan segment t\xFCretilemedi; segment (en az category/brand/models) verin");
+  }
+  const filter4 = segmentFilterOf(segment);
+  const candidates = [];
+  let withUnknownFields = 0;
+  for (const v of views) {
+    if (tv !== void 0 && v.id === tv.id) continue;
+    const ev = evaluateQuery(v.best, filter4, { now });
+    if (!ev.match) continue;
+    if (segment.category !== void 0 && !categoryMatches(v, searches, segment.category)) continue;
+    candidates.push(v);
+    if (ev.unknownFields.length > 0) withUnknownFields++;
+  }
+  const excluded = {
+    noPrice: 0,
+    otherCurrency: 0,
+    stale: 0,
+    implausible: 0,
+    duplicate: 0,
+    outlier: 0,
+    damageMismatch: 0,
+    missingYearOrKm: 0,
+    outsideWindow: 0
+  };
+  let rows = [];
+  for (const v of candidates) {
+    const lp = latestPrice(v);
+    if (lp.price === null) {
+      excluded.noPrice++;
+      continue;
+    }
+    if ((lp.currency ?? "TL") !== "TL") {
+      excluded.otherCurrency++;
+      continue;
+    }
+    const lastSeen = Math.max(latestAt(v.observations), observationTime(v.best.capturedAt));
+    const ageMs = now.getTime() - lastSeen;
+    if (ageMs > input2.maxAgeDays * DAY_MS3) {
+      excluded.stale++;
+      continue;
+    }
+    if (lp.price < MIN_PLAUSIBLE_PRICE) {
+      excluded.implausible++;
+      continue;
+    }
+    rows.push({
+      id: v.id,
+      view: v,
+      price: lp.price,
+      lastSeen,
+      ageDays: Math.max(0, ageMs / DAY_MS3),
+      year: v.best.year,
+      km: v.best.km,
+      damage: damageGroupOf(v, now, input2.maxAgeDays)
+    });
+  }
+  rows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const keep = /* @__PURE__ */ new Map();
+  for (const r of rows) {
+    if (r.year === null || r.km === null) continue;
+    const key = `${r.year}|${r.km}|${r.price}`;
+    const cur2 = keep.get(key);
+    if (!cur2 || r.lastSeen > cur2.lastSeen) keep.set(key, r);
+  }
+  rows = rows.filter((r) => {
+    if (r.year === null || r.km === null) return true;
+    if (keep.get(`${r.year}|${r.km}|${r.price}`) === r) return true;
+    excluded.duplicate++;
+    return false;
+  });
+  if (rows.length >= OUTLIER_MIN_N) {
+    const f = tukeyFences(rows.map((r) => Math.log(r.price)));
+    rows = rows.filter((r) => {
+      const l = Math.log(r.price);
+      if (l >= f.lo && l <= f.hi) return true;
+      excluded.outlier++;
+      return false;
+    });
+  }
+  const pool = rows;
+  const warnings = [];
+  let damagePolicyFallback = false;
+  let sel;
+  if (input2.damagePolicy === "any") sel = pool;
+  else if (input2.damagePolicy === "clean") sel = pool.filter((r) => r.damage.group === "clean");
+  else if (!hasTarget) sel = pool;
+  else if (tDamage === "unknown") {
+    sel = pool;
+    warnings.push("Hedefin hasar durumu bilinmiyor; t\xFCm hasar gruplar\u0131 dahil edildi (damagePolicy: any gibi).");
+  } else {
+    const same = pool.filter((r) => r.damage.group === tDamage);
+    if (same.length >= input2.minSample) sel = same;
+    else {
+      const unknownRows = pool.filter((r) => r.damage.group === "unknown");
+      sel = [...same, ...unknownRows];
+      if (unknownRows.length > 0) {
+        damagePolicyFallback = true;
+        warnings.push("Hasar bilgisi bilinmeyen ilanlar dahil edildi; hatas\u0131z bir ara\xE7 i\xE7in bant a\u015Fa\u011F\u0131 kay\u0131k olabilir.");
+      }
+    }
+  }
+  excluded.damageMismatch = pool.length - sel.length;
+  const rawDist = sel.length > 0 ? describe3(sel.map((r) => r.price)) : null;
+  const hasYK = tYear !== null && tKm !== null;
+  let basis = "raw-segment";
+  let basisRows = [];
+  let basisValues = [];
+  let adjustedById = /* @__PURE__ */ new Map();
+  let fit = null;
+  let window = { years: 0, km: 0 };
+  let noBasisReason;
+  const stepList = [];
+  let adjustedTried = false;
+  let attemptNote = null;
+  if (hasYK && input2.adjust === "auto") {
+    const withYK = sel.filter((r) => r.year !== null && r.km !== null);
+    if (withYK.length >= MIN_FIT_N) {
+      adjustedTried = true;
+      const f = fitSlopes(withYK, tKm);
+      fit = f;
+      if (f.bKm !== null || f.bYear !== null) {
+        const inWin = withYK.filter(
+          (r) => Math.abs(r.year - tYear) <= WINDOW_ADJ.years && Math.abs(r.km - tKm) <= WINDOW_ADJ.km
+        );
+        if (inWin.length >= input2.minSample) {
+          basis = "adjusted";
+          basisRows = inWin;
+          window = WINDOW_ADJ;
+          excluded.missingYearOrKm = sel.length - withYK.length;
+          excluded.outsideWindow = withYK.length - inWin.length;
+          adjustedById = new Map(inWin.map((r) => [r.id, adjustedPrice(r, f, { year: tYear, km: tKm })]));
+          basisValues = inWin.map((r) => adjustedById.get(r.id));
+        } else {
+          attemptNote = `D\xFCzeltme penceresinde (y\u0131l \xB12, km \xB160 bin) yaln\u0131zca ${inWin.length} ilan var (< ${input2.minSample}).`;
+        }
+      } else attemptNote = "Hi\xE7bir e\u011Fim g\xFCvenilir bi\xE7imde kestirilemedi.";
+    } else attemptNote = `D\xFCzeltme i\xE7in en az ${MIN_FIT_N} y\u0131l/km bilgili ilan gerekir (${withYK.length} var).`;
+  } else if (hasYK && input2.adjust === "none") attemptNote = "D\xFCzeltme istenmedi (adjust: none).";
+  let lowYK = false;
+  if (basis !== "adjusted") {
+    if (!hasTarget) {
+      basis = "raw-segment";
+      basisRows = sel;
+      basisValues = sel.map((r) => r.price);
+    } else if (!hasYK) {
+      lowYK = true;
+      basis = "raw-segment";
+      basisRows = sel;
+      basisValues = sel.map((r) => r.price);
+    } else {
+      const band = sel.filter(
+        (r) => r.year !== null && r.km !== null && Math.abs(r.year - tYear) <= WINDOW_BAND.years && Math.abs(r.km - tKm) <= WINDOW_BAND.km
+      );
+      if (band.length >= MIN_SHOWN_N) {
+        basis = "narrow-band";
+        basisRows = band;
+        basisValues = band.map((r) => r.price);
+        window = WINDOW_BAND;
+      } else {
+        basis = "raw-segment";
+        if (sel.length < MIN_SHOWN_N) {
+          basisRows = sel;
+          basisValues = sel.map((r) => r.price);
+        } else {
+          noBasisReason = `hedefe yak\u0131n emsal yok (y\u0131l \xB11, km \xB130 bin i\xE7inde ${band.length} ilan)`;
+        }
+      }
+    }
+  }
+  const basisDist = basisValues.length > 0 ? describe3(basisValues) : null;
+  const candidateKeys = /* @__PURE__ */ new Set();
+  for (const v of candidates) for (const o of v.observations) if (o.searchKey !== void 0) candidateKeys.add(o.searchKey);
+  const seenByKey = /* @__PURE__ */ new Map();
+  for (const v of views) {
+    for (const o of v.observations) {
+      if (o.searchKey === void 0 || !candidateKeys.has(o.searchKey)) continue;
+      (seenByKey.get(o.searchKey) ?? seenByKey.set(o.searchKey, /* @__PURE__ */ new Set()).get(o.searchKey)).add(v.id);
+    }
+  }
+  const coverage = [...seenByKey.entries()].map(([searchKey, ids]) => ({
+    searchKey,
+    seen: ids.size,
+    totalCount: searches[searchKey]?.totalCount ?? null,
+    sorting: searches[searchKey]?.sorting ?? null
+  })).sort((a, b) => b.seen - a.seen || (a.searchKey < b.searchKey ? -1 : 1));
+  const lowCoverageRows = coverage.filter(
+    (c) => c.sorting === "price_asc" && c.totalCount !== null && c.totalCount > 0 && c.seen / c.totalCount < LOW_COVERAGE
+  );
+  const ageRows = basisRows.length > 0 ? basisRows : sel;
+  const ages = ageRows.map((r) => r.ageDays);
+  const ageMedian = ages.length ? median2(ages) : 0;
+  const ageMax = ages.length ? Math.max(...ages) : 0;
+  const usedRows = basisRows;
+  const evidenceCount = { detail: 0, searchFilter: 0, none: 0 };
+  for (const r of usedRows) {
+    if (r.damage.evidence === "detail") evidenceCount.detail++;
+    else if (r.damage.evidence === "search-filter") evidenceCount.searchFilter++;
+    else evidenceCount.none++;
+  }
+  const evidenceConflicts = pool.filter((r) => r.damage.conflict).length;
+  let offCenter = false;
+  if (basis === "narrow-band" && basisRows.length > 0) {
+    const medKm = median2(basisRows.map((r) => r.km));
+    const medYear = median2(basisRows.map((r) => r.year));
+    offCenter = Math.abs(medKm - tKm) > WINDOW_BAND.km / 2 || Math.abs(medYear - tYear) >= 1;
+  }
+  const confidence = confidenceOf({
+    n: basisRows.length > 0 ? basisRows.length : sel.length,
+    ...noBasisReason !== void 0 ? { noBasis: noBasisReason } : {},
+    medianAgeDays: ageMedian,
+    damagePolicyFallback,
+    iqrPct: basisDist?.iqrPct ?? null,
+    narrowBandOffCenter: offCenter,
+    lowCoverage: lowCoverageRows.length > 0,
+    noTargetYearKm: lowYK
+  });
+  const insufficient = confidence.level === "insufficient";
+  const fairBand = hasTarget && basisDist && !lowYK ? insufficient ? { p10: null, q1: null, median: r0(basisDist.median), q3: null, p90: null } : {
+    p10: basisDist.p10 === null ? null : r0(basisDist.p10),
+    q1: basisDist.q1 === null ? null : r0(basisDist.q1),
+    median: r0(basisDist.median),
+    q3: basisDist.q3 === null ? null : r0(basisDist.q3),
+    p90: basisDist.p90 === null ? null : r0(basisDist.p90)
+  } : null;
+  const comparableBase = hasTarget && hasYK && basis !== "raw-segment";
+  const position = hasTarget && tPrice !== null && basisDist && !insufficient && !lowYK ? positionOf(basisValues, basisDist, tPrice) : null;
+  const tramerLabel = ti?.tramerAmount !== void 0 ? bucketOfAmount(ti.tramerAmount) : tv ? tramerBucketOf(tv) : null;
+  let sameTrim = null;
+  if (ti?.trim) {
+    const want = foldTr(ti.trim);
+    const hit = sel.filter((r) => foldTr(`${r.view.best.title} ${r.view.best.model ?? ""}`).includes(want));
+    sameTrim = { trim: ti.trim, n: hit.length, median: medOrNull(hit.map((r) => r.price)) };
+  }
+  const groups = ["clean", "painted", "replaced", "heavy", "unknown"];
+  const cleanMedian = medOrNull(pool.filter((r) => r.damage.group === "clean").map((r) => r.price));
+  const damageBreakdown = groups.map((g) => {
+    const rs = pool.filter((r) => r.damage.group === g);
+    const med = medOrNull(rs.map((r) => r.price));
+    return {
+      group: g,
+      n: rs.length,
+      median: med,
+      vsCleanMedianPct: g !== "clean" && med !== null && cleanMedian !== null ? r1((med / cleanMedian - 1) * 100) : null,
+      evidence: {
+        detail: rs.filter((r) => r.damage.evidence === "detail").length,
+        searchFilter: rs.filter((r) => r.damage.evidence === "search-filter").length
+      }
+    };
+  }).filter((g) => g.n > 0);
+  const tramerBreakdown = TRAMER_BUCKETS.map((bucket) => {
+    const rs = pool.filter((r) => tramerBucketOf(r.view) === bucket);
+    return { bucket, n: rs.length, median: medOrNull(rs.map((r) => r.price)) };
+  }).filter((b) => b.n > 0);
+  const comparables = [];
+  if (comparableBase && input2.comparables > 0 && !insufficient) {
+    const ranked = basisRows.slice().sort(
+      (a, b) => Math.abs(a.year - tYear) * 3e4 + Math.abs(a.km - tKm) - (Math.abs(b.year - tYear) * 3e4 + Math.abs(b.km - tKm)) || (a.id < b.id ? -1 : 1)
+    );
+    for (const r of ranked.slice(0, input2.comparables)) {
+      comparables.push({
+        id: r.id,
+        url: r.view.best.url,
+        year: r.year,
+        km: r.km,
+        price: r.price,
+        adjustedPrice: adjustedById.has(r.id) ? r0(adjustedById.get(r.id)) : null,
+        damage: r.damage.group,
+        lastSeenAt: new Date(r.lastSeen).toISOString()
+      });
+    }
+  }
+  stepList.push(
+    `Segment: ${describeSegment(segment)}; ${candidates.length} aday ilan bulundu${tv ? " (hedef ilan hari\xE7)" : ""}.`
+  );
+  const removed = excluded.noPrice + excluded.otherCurrency + excluded.stale + excluded.implausible + excluded.duplicate + excluded.outlier;
+  stepList.push(
+    `Temizlik: fiyats\u0131z, TL d\u0131\u015F\u0131, ${input2.maxAgeDays} g\xFCnden eski g\xF6zlemli, ${MIN_PLAUSIBLE_PRICE.toLocaleString("tr-TR")} TL alt\u0131, kopya ve u\xE7 ayk\u0131r\u0131 fiyatl\u0131 ilanlar \xE7\u0131kar\u0131ld\u0131 (${removed} ilan); ${pool.length} ilan kald\u0131.`
+  );
+  stepList.push(
+    `Hasar politikas\u0131 (${input2.damagePolicy}): hasar/boya/tramer d\xFCzeltmeye girmez; ${sel.length} ilan hasar grubuna g\xF6re se\xE7ildi, gruplar ayr\u0131 tablolarda raporlan\u0131r.`
+  );
+  if (basis === "adjusted" && fit) {
+    stepList.push(
+      `D\xFCzeltme: km e\u011Fimi ${fit.bKm !== null ? `10 bin km ba\u015F\u0131na %${trNum((Math.exp(fit.bKm * 1e4) - 1) * 100)}` : "kapal\u0131"}, model y\u0131l\u0131 e\u011Fimi ${fit.bYear !== null ? `y\u0131l ba\u015F\u0131na %${trNum((Math.exp(fit.bYear) - 1) * 100)}` : "kapal\u0131"} (Theil\u2013Sen: ${fit.kmPairs} km \xE7ifti, ${fit.yearPairs} y\u0131l \xE7ifti).`
+    );
+    stepList.push(
+      `Her emsal fiyat\u0131 hedefin y\u0131l\u0131na ve km'sine ta\u015F\u0131nd\u0131; y\u0131l \xB12 ve km \xB160 bin penceresindeki ${basisRows.length} ilan kullan\u0131ld\u0131.`
+    );
+  } else {
+    if (attemptNote) stepList.push(`D\xFCzeltme yap\u0131lamad\u0131: ${attemptNote}`);
+    if (basis === "narrow-band") {
+      stepList.push(`Dar emsal band\u0131: y\u0131l \xB11 ve km \xB130 bin i\xE7indeki ${basisRows.length} ilan\u0131n ham fiyatlar\u0131 kullan\u0131ld\u0131.`);
+    } else if (hasTarget && !lowYK && noBasisReason) {
+      stepList.push(`Dar emsal band\u0131nda yeterli ilan yok; yaln\u0131zca segmentin ham da\u011F\u0131l\u0131m\u0131 (raw) raporland\u0131, emsal band\u0131 ve konum verilmedi.`);
+    } else {
+      stepList.push(`Segmentin ham fiyatlar\u0131 (${basisValues.length} ilan) do\u011Frudan kullan\u0131ld\u0131.`);
+    }
+  }
+  if (position) stepList.push("Konum: hedef fiyat\u0131n, emsal fiyatlar i\xE7indeki orta-s\u0131ra y\xFCzdeli\u011Fi ve medyana g\xF6re fark\u0131 hesapland\u0131.");
+  if (fairBand && !insufficient) stepList.push("Emsal band\u0131: P10, Q1, medyan, Q3 ve P90 do\u011Frusal enterpolasyonlu y\xFCzdeliklerle (Excel PERCENTILE.INC) hesapland\u0131.");
+  const allWarnings = [
+    "Fiyatlar ilan (istek) fiyat\u0131d\u0131r; ger\xE7ekle\u015Fen sat\u0131\u015F fiyat\u0131 de\u011Fildir ve genellikle daha d\xFC\u015F\xFCkt\xFCr.",
+    "Yaln\u0131zca sizin kaydetti\u011Finiz sayfalara dayan\u0131r; piyasan\u0131n tamam\u0131 de\u011Fildir."
+  ];
+  if (candidates.length === 0) {
+    allWarnings.push("Segmentte ilan yok; search_cars'\u0131n searchUrls'ini kaydedip i\xE7e aktar\u0131n.");
+  }
+  allWarnings.push(...warnTarget);
+  if (insufficient && candidates.length > 0) {
+    allWarnings.push("\xD6rnek yetersiz: fiyat konumu ve g\xFCvenilir bir emsal band\u0131 verilmedi; kesin yorum yapmay\u0131n.");
+  }
+  if (ageMedian > OLD_OBSERVATION_DAYS) {
+    allWarnings.push(
+      `G\xF6zlemlerin ya\u015F medyan\u0131 ${Math.floor(ageMedian)} g\xFCn; TL nominal fiyatlar enflasyon nedeniyle eskimi\u015F olabilir.`
+    );
+  }
+  allWarnings.push(...warnings);
+  if (lowCoverageRows.length > 0) {
+    allWarnings.push(
+      "Fiyata g\xF6re artan s\u0131ral\u0131 arama sonu\xE7lar\u0131n\u0131n yaln\u0131zca bir k\u0131sm\u0131 kay\u0131tl\u0131; \xF6rnek ucuz uca kay\u0131k olabilir (t\xFCm sayfalar\u0131 ya da date_desc s\u0131ral\u0131 sayfalar\u0131 kaydedin)."
+    );
+  }
+  if (fit) {
+    allWarnings.push(...fit.warnings);
+  }
+  if (sameTrim && sameTrim.n < 3) {
+    allWarnings.push(`Donan\u0131m "${sameTrim.trim}" i\xE7in yeterli e\u015Fle\u015Fen ilan yok (n=${sameTrim.n}); donan\u0131m fark\u0131 d\xFCzeltilmez.`);
+  }
+  if (damageBreakdown.length > 0 || tramerBreakdown.length > 0) {
+    allWarnings.push(
+      "Hasar/tramer tablolar\u0131 g\xF6zlemsel farkt\u0131r, neden-sonu\xE7 de\u011Fildir; bilgiler sat\u0131c\u0131 beyan\u0131na dayan\u0131r. Resmi tramer sorgusu ve ba\u011F\u0131ms\u0131z ekspertiz yapt\u0131r\u0131n."
+    );
+  }
+  if (withUnknownFields > 0) {
+    allWarnings.push(`${withUnknownFields} aday ilanda segment alanlar\u0131ndan biri bilinmiyor (dahil edildi).`);
+  }
+  const kmPct = fit && basis === "adjusted" && fit.bKm !== null ? r2((Math.exp(fit.bKm * 1e4) - 1) * 100) : null;
+  const yearPct = fit && basis === "adjusted" && fit.bYear !== null ? r2((Math.exp(fit.bYear) - 1) * 100) : null;
+  return {
+    segmentUsed: segment,
+    method: {
+      basis,
+      kmSlopePctPer10k: kmPct,
+      yearSlopePct: yearPct,
+      kmPairs: adjustedTried && fit ? fit.kmPairs : 0,
+      yearPairs: adjustedTried && fit ? fit.yearPairs : 0,
+      window,
+      steps: stepList
+    },
+    sample: {
+      candidates: candidates.length,
+      used: usedRows.length,
+      withUnknownFields,
+      excluded,
+      observationAgeDays: { median: r0(ageMedian), max: r0(ageMax) },
+      damageEvidence: evidenceCount,
+      evidenceConflicts,
+      damagePolicyFallback,
+      coverage
+    },
+    raw: rawDist ? roundDist(rawDist) : null,
+    basisDistribution: basisDist && !noBasisReason ? roundDist(basisDist) : null,
+    target: hasTarget ? {
+      source: tv ? "ref" : "input",
+      ...tv ? { id: tv.id } : {},
+      year: tYear,
+      km: tKm,
+      price: tPrice,
+      damage: tDamage,
+      tramer: tramerLabel,
+      fairBand,
+      position
+    } : null,
+    sameTrim,
+    damageBreakdown,
+    tramerBreakdown,
+    comparables,
+    confidence,
+    warnings: allWarnings
+  };
+}
+
+// src/tools/market-stats.ts
+var MARKET_STATS_DESCRIPTION = "Yerel store'daki ilan (istek) fiyatlar\u0131ndan segment istatisti\u011Fi (medyan, \xE7eyrekler, P10/P90, n) ve verilen ara\xE7 i\xE7in emsal band\u0131 ile fiyat konumunu (y\xFCzdelik, medyana g\xF6re %) hesaplar. Km/model y\u0131l\u0131 fark\u0131 \u015Feffaf Theil\u2013Sen e\u011Fimleriyle d\xFCzeltilir; hasar/boya/tramer d\xFCzeltmeye girmez, ayr\u0131 tablolarda raporlan\u0131r. \u0130ki kullan\u0131m: target.ref ile store'daki bir ilan\u0131n konumu, ya da target.year+km(+price) ile kendi arac\u0131n\u0131z i\xE7in emsal band\u0131. confidence alan\u0131n\u0131 kullan\u0131c\u0131ya AYNEN aktar; insufficient/low ise kesin yorum yapma. \u0130stek fiyat\u0131 sat\u0131\u015F fiyat\u0131 de\u011Fildir. Sonu\xE7lar yaln\u0131zca kullan\u0131c\u0131n\u0131n kaydetti\u011Fi sayfalara dayan\u0131r. \u0130nternete ba\u011Flanmaz.";
+var DamageGroupSchema = external_exports.enum(["clean", "painted", "replaced", "heavy", "unknown"]);
+var SegmentSchema = SearchQuerySchema.pick({
+  city: true,
+  brand: true,
+  models: true,
+  yearMin: true,
+  yearMax: true,
+  kmMin: true,
+  kmMax: true,
+  transmission: true,
+  fuel: true,
+  sellerType: true,
+  bodyType: true,
+  enginePower: true,
+  engineVolume: true
+}).extend({ category: external_exports.string().regex(/^[a-z0-9.\-]+$/).max(80).optional() });
+var TargetSchema = external_exports.object({
+  /** İlan no / URL (store'da olmalı). */
+  ref: external_exports.string().min(3).max(2e3).optional(),
+  year: external_exports.number().int().min(1950).max(2100).optional(),
+  km: external_exports.number().int().min(0).max(2e6).optional(),
+  /** TL; yoksa yalnızca emsal bandı hesaplanır. */
+  price: external_exports.number().int().positive().optional(),
+  /** '111. Yıl' (yalnızca bilgi satırı). */
+  trim: external_exports.string().max(60).optional(),
+  damage: DamageGroupSchema.optional(),
+  tramerAmount: external_exports.number().int().min(0).optional()
+}).refine((t) => t.ref !== void 0 || t.year !== void 0 && t.km !== void 0, {
+  message: "target i\xE7in ref ya da year+km gerekli"
+});
+var marketStatsInput = external_exports.object({
+  segment: SegmentSchema.optional(),
+  target: TargetSchema.optional(),
+  damagePolicy: external_exports.enum(["match-target", "clean", "any"]).default("match-target"),
+  maxAgeDays: external_exports.number().int().min(1).max(365).default(60),
+  minSample: external_exports.number().int().min(5).max(50).default(8),
+  adjust: external_exports.enum(["auto", "none"]).default("auto"),
+  comparables: external_exports.number().int().min(0).max(30).default(10)
+});
+var Dist = external_exports.object({
+  n: external_exports.number(),
+  min: external_exports.number(),
+  p10: external_exports.number().nullable(),
+  q1: external_exports.number().nullable(),
+  median: external_exports.number(),
+  q3: external_exports.number().nullable(),
+  p90: external_exports.number().nullable(),
+  max: external_exports.number(),
+  iqrPct: external_exports.number().nullable()
+});
+var marketStatsOutput = external_exports.object({
+  segmentUsed: SegmentSchema,
+  method: external_exports.object({
+    basis: external_exports.enum(["adjusted", "narrow-band", "raw-segment"]),
+    kmSlopePctPer10k: external_exports.number().nullable(),
+    yearSlopePct: external_exports.number().nullable(),
+    kmPairs: external_exports.number(),
+    yearPairs: external_exports.number(),
+    window: external_exports.object({ years: external_exports.number(), km: external_exports.number() }),
+    /** İnsan okunur yöntem açıklaması (her adım bir cümle). */
+    steps: external_exports.array(external_exports.string())
+  }),
+  sample: external_exports.object({
+    candidates: external_exports.number(),
+    used: external_exports.number(),
+    withUnknownFields: external_exports.number(),
+    excluded: external_exports.record(external_exports.string(), external_exports.number()),
+    observationAgeDays: external_exports.object({ median: external_exports.number(), max: external_exports.number() }),
+    damageEvidence: external_exports.object({ detail: external_exports.number(), searchFilter: external_exports.number(), none: external_exports.number() }),
+    evidenceConflicts: external_exports.number(),
+    damagePolicyFallback: external_exports.boolean(),
+    coverage: external_exports.array(
+      external_exports.object({ searchKey: external_exports.string(), seen: external_exports.number(), totalCount: external_exports.number().nullable(), sorting: external_exports.string().nullable() })
+    )
+  }),
+  raw: Dist.nullable(),
+  basisDistribution: Dist.nullable(),
+  target: external_exports.object({
+    source: external_exports.enum(["ref", "input"]),
+    id: external_exports.string().optional(),
+    year: external_exports.number().nullable(),
+    km: external_exports.number().nullable(),
+    price: external_exports.number().nullable(),
+    damage: DamageGroupSchema,
+    tramer: external_exports.string().nullable(),
+    fairBand: external_exports.object({
+      p10: external_exports.number().nullable(),
+      q1: external_exports.number().nullable(),
+      median: external_exports.number(),
+      q3: external_exports.number().nullable(),
+      p90: external_exports.number().nullable()
+    }).nullable(),
+    position: external_exports.object({
+      percentile: external_exports.number(),
+      vsMedianPct: external_exports.number(),
+      band: external_exports.enum(["well-below", "below", "typical", "above", "well-above"]),
+      text: external_exports.string()
+    }).nullable()
+  }).nullable(),
+  sameTrim: external_exports.object({ trim: external_exports.string(), n: external_exports.number(), median: external_exports.number().nullable() }).nullable(),
+  damageBreakdown: external_exports.array(
+    external_exports.object({
+      group: DamageGroupSchema,
+      n: external_exports.number(),
+      median: external_exports.number().nullable(),
+      vsCleanMedianPct: external_exports.number().nullable(),
+      evidence: external_exports.object({ detail: external_exports.number(), searchFilter: external_exports.number() })
+    })
+  ),
+  tramerBreakdown: external_exports.array(external_exports.object({ bucket: external_exports.string(), n: external_exports.number(), median: external_exports.number().nullable() })),
+  comparables: external_exports.array(
+    external_exports.object({
+      id: external_exports.string(),
+      url: external_exports.string(),
+      year: external_exports.number().nullable(),
+      km: external_exports.number().nullable(),
+      price: external_exports.number(),
+      adjustedPrice: external_exports.number().nullable(),
+      damage: DamageGroupSchema,
+      lastSeenAt: external_exports.string()
+    })
+  ),
+  confidence: external_exports.object({
+    level: external_exports.enum(["insufficient", "low", "medium", "high"]),
+    summary: external_exports.string(),
+    reasons: external_exports.array(external_exports.string())
+  }),
+  warnings: external_exports.array(external_exports.string())
+});
+async function marketStatsHandler(input2, deps) {
+  const hasSegment = input2.segment !== void 0 && Object.values(input2.segment).some((v) => v !== void 0 && !(Array.isArray(v) && v.length === 0));
+  const ref = input2.target?.ref;
+  if (!hasSegment && ref === void 0) {
+    throw new Error("segment (en az category/brand/models) ya da target.ref gerekli");
+  }
+  let targetView;
+  if (ref !== void 0) {
+    const id = parseRef(ref);
+    if (id === null) throw new Error("\u0130lan no veya sahibinden ilan URL'si tan\u0131nmad\u0131.");
+    targetView = deps.store.record(id);
+    if (!targetView) throw new Error("\u0130lan store'da yok; \xF6nce sayfas\u0131n\u0131 i\xE7e aktar\u0131n (get_listing hint'ine bak\u0131n).");
+  }
+  const result = computeMarketStats(deps.store.records(), deps.store.searches(), input2, deps.now(), {
+    ...targetView ? { targetView } : {}
+  });
+  return marketStatsOutput.parse(result);
+}
+
+// src/analytics/risk.ts
+var PHRASES = [
+  { code: "pert", severity: "high", re: /\bpert\b/, text: 'A\xE7\u0131klamada "pert" ge\xE7iyor' },
+  { code: "heavy-damage-text", severity: "high", re: /agir hasar/, text: 'A\xE7\u0131klamada "a\u011F\u0131r hasar" ge\xE7iyor' },
+  { code: "chassis", severity: "high", re: /\bsasi\b.{0,20}\b(hasar|kaynak|egri|kaza)|\b(hasar|kaynak|egri)\w*\b.{0,15}\bsasi\b/, text: "\u015Easi hasar\u0131/kayna\u011F\u0131 ima ediliyor" },
+  { code: "engine-fault", severity: "high", re: /\bmotor\w*\b.{0,15}\b(arizali|sorunlu|bitik|yanik|patlak|catlak|calismiyor)/, text: "Motor ar\u0131zas\u0131 ima ediliyor" },
+  { code: "gearbox-fault", severity: "high", re: /\b(sanziman|vites kutusu)\w*\b.{0,15}\b(arizali|sorunlu|bitik|atlama|vurma)/, text: "\u015Eanz\u0131man/vites sorunu ima ediliyor" },
+  { code: "airbag", severity: "high", re: /airbag\w*\b.{0,15}\b(patlak|patlamis|acilmis|acildi|patladi)|\bhava yastigi\b.{0,15}\b(patlak|patlamis|acilmis)/, text: "Hava yast\u0131\u011F\u0131 a\xE7\u0131lm\u0131\u015F/patlak olabilir" },
+  { code: "not-running", severity: "high", re: /\b(yurumez|calismaz|calismiyor|calismayan|hurda belgeli|hurdaya ayrilmis)\b/, text: "Ara\xE7 \xE7al\u0131\u015Fm\u0131yor/hurda ima ediliyor" },
+  { code: "fire-flood", severity: "high", re: /\b(yangin gecirmis|yanmis|sel basmis|su basmis|sel hasarli|su hasarli)\b/, text: "Yang\u0131n/sel-su hasar\u0131 ima ediliyor" },
+  { code: "odometer", severity: "high", re: /\b(km|kilometre)\w*\b.{0,15}\b(dusurulmus|degistirilmis|sifirlanmis|geri alinmis)/, text: "Kilometre m\xFCdahalesi ima ediliyor" },
+  { code: "no-notary", severity: "high", re: /noter satisi (yok|yapilmaz|yapilamaz)|noter(e)? (gelmiyor|gidilmez)/, text: "Noter sat\u0131\u015F\u0131 yap\u0131lmayaca\u011F\u0131 ima ediliyor", selfNegated: true },
+  { code: "power-of-attorney", severity: "medium", re: /\b(vekaletname|vekaletle satis|vekalet ile)\b/, text: "Sat\u0131\u015F vekaletnameyle: mal sahibi ve tapu/ruhsat sahibini do\u011Frulay\u0131n" },
+  { code: "plate", severity: "medium", re: /\b(plakasiz|plaka satilik|plaka degisikligi|plaka degisti)\b/, text: "Plaka durumu belirsiz" },
+  { code: "fault-exists", severity: "medium", re: /\b(ariza|sorun|problem)\w*\b.{0,12}\b(var|mevcut)\b|\b(yag|su) (yakiyor|yapiyor|kaciriyor|eksiltiyor)\b|\bturbo\w*\b.{0,12}\b(sorun|ariza|problem)/, text: "Bilinen ar\u0131za/sorun belirtiliyor" },
+  { code: "needs-work", severity: "medium", re: /\b(masraf|bakim|tamir|onarim|yedek parca)\w*\b.{0,15}\b(gerekir|gerektirir|ister|gerekiyor|lazim|bekliyor)/, text: "Masraf/bak\u0131m gerektirdi\u011Fi belirtiliyor" },
+  { code: "inspection", severity: "medium", re: /\b(muayene\w*|sigorta\w*|kasko\w*)\b.{0,12}\b(yok|gecmis|bitmis|bitti|yoktur)\b/, text: "Muayene/sigorta durumu sorunlu olabilir", selfNegated: true },
+  { code: "lien", severity: "medium", re: /\b(icra|haciz|rehin|borc yuzunden|borc nedeniyle)\b/, text: "\u0130cra/haciz/rehin ya da bor\xE7 nedeniyle sat\u0131\u015F ima ediliyor" },
+  { code: "urgent", severity: "low", re: /\b(acil satilik|acil satilir|acil nakit|acil para|acilen satilik)\b/, text: "Acil sat\u0131\u015F vurgusu (pazarl\u0131k pay\u0131 olabilir, nedeni sorun)" },
+  { code: "commercial", severity: "low", re: /\b(taksi|ticari kullanim|filo arac|kiralik arac|kiralama)\b/, text: "Taksi/ticari/filo kullan\u0131m\u0131 ge\xE7iyor (y\u0131pranma y\xFCksek olabilir)" },
+  { code: "import", severity: "low", re: /\b(yurt disi|yurtdisi) (plakali|cikisli|arac)/, text: "Yurt d\u0131\u015F\u0131 k\xF6kenli olabilir" }
+];
+var POSITIVES = [
+  { re: /\b(ilk sahib\w*|tek sahib\w*|ilk elden)\b/, text: "Tek/ilk sahip beyan\u0131" },
+  { re: /\bbakimlar\w*\b.{0,20}\b(yetkili|serviste|zamaninda|duzenli)|\b(yetkili servis|duzenli bakim|servis bakimli)\b/, text: "D\xFCzenli/yetkili servis bak\u0131m\u0131 beyan\u0131" },
+  { re: /\bekspertiz\w*\b.{0,15}\b(yaptirilabilir|yapilabilir|raporu|raporlu|serbest)/, text: "Ekspertize a\xE7\u0131k/raporlu" },
+  { re: /\bgarantisi\w*\b.{0,12}\b(devam|var|suruyor)/, text: "Garanti devam ediyor beyan\u0131" },
+  { re: /\b(hasar kaydi yok|tramer kaydi yok|hatasiz|boyasiz|degisensiz)\b/, text: "Hasar/tramer yok beyan\u0131 (do\u011Frulanmad\u0131)" }
+];
+var NEGATION = /\b(yok|yoktur|degil|degildir|olmayan|bulunmamaktadir|bulunmuyor|bulunmaz|sorunsuz|problemsiz|arizasiz|yaptirilmamistir|gecirmemistir|gecirmedi)\b/;
+function scanDescription(description) {
+  const flags = [];
+  const positives = [];
+  if (!description) return { flags, positives };
+  const sentences = foldTr(description).split(/[.!?\n;]+/).map((s) => s.trim()).filter(Boolean);
+  const seen = /* @__PURE__ */ new Set();
+  for (const s of sentences) {
+    const negated = NEGATION.test(s);
+    for (const rule of PHRASES) {
+      if (negated && !rule.selfNegated) continue;
+      if (!seen.has(rule.code) && rule.re.test(s)) {
+        seen.add(rule.code);
+        flags.push({ code: rule.code, severity: rule.severity, text: rule.text });
+      }
+    }
+    for (const p of POSITIVES) if (!positives.includes(p.text) && p.re.test(s)) positives.push(p.text);
+  }
+  return { flags, positives };
+}
+var STRUCTURAL = ["tavan", "sasi", "podye", "direk", "sac", "lonjeron", "marspiyel"];
+function assessRisk(view, now, maxAgeDays) {
+  const flags = [];
+  const b = view.best;
+  const dmg = damageGroupOf(view, now, maxAgeDays);
+  const tramer = tramerBucketOf(view);
+  switch (dmg.group) {
+    case "heavy":
+      flags.push({ code: "heavy-damage", severity: "high", text: "A\u011F\u0131r hasar kayd\u0131 var" });
+      break;
+    case "replaced": {
+      const changed = (b.damage ?? []).filter((p) => p.status === "changed");
+      const structural = changed.some((p) => STRUCTURAL.some((s) => foldTr(p.part).includes(s)));
+      flags.push({
+        code: "replaced-parts",
+        severity: structural || changed.length >= 3 ? "high" : "medium",
+        text: `De\u011Fi\u015Fen par\xE7a: ${changed.map((p) => p.part).join(", ")}`
+      });
+      break;
+    }
+    case "painted": {
+      const painted = (b.damage ?? []).filter((p) => p.status === "painted" || p.status === "local-painted");
+      flags.push({
+        code: "painted-parts",
+        severity: painted.length >= 4 ? "medium" : "low",
+        text: `Boyal\u0131/lokal boyal\u0131 par\xE7a: ${painted.map((p) => p.part).join(", ")}`
+      });
+      break;
+    }
+    case "unknown":
+      flags.push({ code: "damage-unknown", severity: "low", text: "Hasar/boya/de\u011Fi\u015Fen bilgisi yok (detay sayfas\u0131 i\xE7e aktar\u0131lmad\u0131)" });
+      break;
+    case "clean":
+      break;
+  }
+  if (dmg.conflict) {
+    flags.push({ code: "evidence-conflict", severity: "medium", text: 'Arama filtresi "hatas\u0131z" diyor, ilan detay\u0131 hasar g\xF6steriyor (detay ge\xE7erli)' });
+  }
+  if (tramer === ">100 bin") flags.push({ code: "tramer-high", severity: "high", text: "Tramer 100 bin TL \xFCzerinde (sat\u0131c\u0131 beyan\u0131)" });
+  else if (tramer === "25\u2013100 bin") flags.push({ code: "tramer-mid", severity: "medium", text: "Tramer 25\u2013100 bin TL aras\u0131 (sat\u0131c\u0131 beyan\u0131)" });
+  else if (tramer === "\u226425 bin") flags.push({ code: "tramer-low", severity: "low", text: "K\xFC\xE7\xFCk tutarl\u0131 tramer (sat\u0131c\u0131 beyan\u0131)" });
+  else if (tramer === "mentioned") flags.push({ code: "tramer-mentioned", severity: "medium", text: "A\xE7\u0131klamada tramer/\xE7arpma ge\xE7iyor, tutar belirtilmemi\u015F" });
+  if (b.year && b.km !== null && b.km !== void 0) {
+    const age = Math.max(1, now.getUTCFullYear() - b.year);
+    const perYear = b.km / age;
+    if (age >= 3 && perYear < 5e3) {
+      flags.push({ code: "km-low", severity: "medium", text: `Y\u0131ll\u0131k km \xE7ok d\xFC\u015F\xFCk (~${Math.round(perYear).toLocaleString("tr-TR")} km/y\u0131l); servis kay\u0131tlar\u0131yla do\u011Frulay\u0131n` });
+    } else if (perYear > 35e3) {
+      flags.push({ code: "km-high", severity: "low", text: `Y\u0131ll\u0131k km y\xFCksek (~${Math.round(perYear).toLocaleString("tr-TR")} km/y\u0131l)` });
+    }
+  }
+  const scan = scanDescription(b.description);
+  flags.push(...scan.flags);
+  return { flags, positives: scan.positives, damageGroup: dmg.group, damageEvidence: dmg.evidence, tramer };
+}
+
+// src/analytics/rank.ts
+var MIN_GROUP_N = 5;
+var MIN_FIT_N2 = 12;
+var OUTLIER_MIN_N2 = 8;
+var r02 = (x) => Math.round(x);
+var r12 = (x) => Math.round(x * 10) / 10;
+var trNum2 = (x) => r12(x).toFixed(1).replace(".", ",");
+var groupKeyOf = (v) => {
+  const series = foldTr(v.best.series ?? "").replace(/[^a-z0-9]+/g, "");
+  return series ? `s|${series}` : `t|${foldTr(v.best.title).split(/\s+/).slice(0, 2).join("")}`;
+};
+var groupLabelOf = (v) => {
+  const b = v.best;
+  const label = [b.brand, b.series].filter(Boolean).join(" ");
+  return label || b.title.split(/\s+/).slice(0, 2).join(" ");
+};
+var confidenceOfGroup = (n, fit) => {
+  if (n < MIN_GROUP_N) return "insufficient";
+  if (n < 10 || !fit || fit.bKm === null && fit.bYear === null) return "low";
+  return n >= 25 && fit.bKm !== null && fit.bYear !== null ? "high" : "medium";
+};
+function scoreOf(vsMarketPct, risks, positives, hasDetail) {
+  let s = 50;
+  if (vsMarketPct !== null) s += Math.max(-30, Math.min(30, -vsMarketPct)) * 1.5;
+  for (const f of risks) s -= f.severity === "high" ? 25 : f.severity === "medium" ? 10 : 3;
+  s += Math.min(6, positives.length * 2);
+  if (!hasDetail) s -= 5;
+  return Math.max(0, Math.min(100, r02(s)));
+}
+function verdictOf(vs, risks, hasBaseline, hasDetail) {
+  if (risks.some((f) => f.severity === "high")) return "risky";
+  if (!hasBaseline || vs === null) return "no-baseline";
+  if (vs <= -25) return "check-first";
+  if (vs <= -8) return hasDetail ? "strong-candidate" : "check-first";
+  if (vs <= 5) return "fair";
+  return "overpriced";
+}
+function reasonsOf(c, vs, pos, risks, verdict, label, n) {
+  const out = [];
+  if (vs !== null) {
+    out.push(
+      `${label} grubunun (n=${n}) km/y\u0131l d\xFCzeltilmi\u015F medyan\u0131na g\xF6re %${trNum2(Math.abs(vs))} ${vs < 0 ? "ucuz" : vs > 0 ? "pahal\u0131" : "ayn\u0131 d\xFCzeyde"}` + (pos ? ` (emsallerin ~%${pos.percentile}'i bu fiyat\u0131n alt\u0131nda)` : "") + "."
+    );
+  } else {
+    out.push(`Piyasa taban\u0131 kurulamad\u0131 (${label} grubunda yeterli emsal yok).`);
+  }
+  if (verdict === "check-first" && vs !== null && vs <= -25) out.push("Fiyat piyasan\u0131n \xE7ok alt\u0131nda: gizli hasar, km oyunu ya da sahte ilan olas\u0131l\u0131\u011F\u0131n\u0131 eleyin.");
+  for (const f of risks.filter((x) => x.severity !== "low").slice(0, 3)) out.push(f.text + ".");
+  return out;
+}
+function nextStepsOf(verdict, hasDetail, risks) {
+  const steps = [];
+  if (!hasDetail) steps.push("\u0130lan detay sayfas\u0131n\u0131 kaydedip i\xE7e aktar\u0131n (hasar/tramer/a\xE7\u0131klama burada g\xF6r\xFCl\xFCr).");
+  if (verdict === "strong-candidate" || verdict === "fair") steps.push("Tramer sorgusu ve ba\u011F\u0131ms\u0131z ekspertiz yapt\u0131r\u0131n; sat\u0131c\u0131n\u0131n beyanlar\u0131n\u0131 belgeyle do\u011Frulay\u0131n.");
+  if (verdict === "check-first") steps.push("Fiyat/bilgi tutars\u0131zl\u0131\u011F\u0131n\u0131n nedenini sat\u0131c\u0131dan yaz\u0131l\u0131 isteyin; g\xF6rmeden kapora vermeyin.");
+  if (verdict === "risky") steps.push("Y\xFCksek risk bayraklar\u0131 \xE7\xF6z\xFClmeden ilerlemeyin.");
+  if (verdict === "overpriced") steps.push("Pazarl\u0131k pay\u0131 i\xE7in benzer ilanlar\u0131n fiyatlar\u0131n\u0131 referans g\xF6sterin.");
+  if (risks.some((f) => f.code === "km-low")) steps.push("D\xFC\u015F\xFCk km i\xE7in servis/bak\u0131m kay\u0131tlar\u0131n\u0131 ve OBD km verisini isteyin.");
+  return steps;
+}
+function rankListings(views, query, opts, now) {
+  const excluded = { noPrice: 0, otherCurrency: 0, stale: 0, implausible: 0, outlier: 0, noMatch: 0 };
+  const warnings = [
+    "Fiyatlar ilan (istek) fiyat\u0131d\u0131r, sat\u0131\u015F fiyat\u0131 de\u011Fildir; sonu\xE7lar yaln\u0131zca kaydetti\u011Finiz sayfalara dayan\u0131r.",
+    "Hasar, boya ve tramer bilgisi sat\u0131c\u0131 beyan\u0131d\u0131r; ekspertiz ve tramer sorgusu yerine ge\xE7mez. Bu bir al\u0131m tavsiyesi de\u011Fildir."
+  ];
+  const cands = [];
+  const staleBefore = now.getTime() - opts.maxAgeDays * DAY_MS3;
+  for (const v of views) {
+    if (!evaluateQuery(v.best, query, { now }).match) {
+      excluded.noMatch++;
+      continue;
+    }
+    const price = v.best.price;
+    if (price === null) {
+      excluded.noPrice++;
+      continue;
+    }
+    if (v.best.currency !== null && v.best.currency !== "TL") {
+      excluded.otherCurrency++;
+      continue;
+    }
+    if (price < MIN_PLAUSIBLE_PRICE) {
+      excluded.implausible++;
+      continue;
+    }
+    const lastSeen = Math.max(...v.observations.map((o) => observationTime(o.at)), observationTime(v.best.capturedAt));
+    if (lastSeen < staleBefore) {
+      excluded.stale++;
+      continue;
+    }
+    cands.push({ view: v, key: groupKeyOf(v), label: groupLabelOf(v), price, year: v.best.year, km: v.best.km });
+  }
+  const byGroup = /* @__PURE__ */ new Map();
+  for (const c of cands) byGroup.set(c.key, [...byGroup.get(c.key) ?? [], c]);
+  const groups = [];
+  const baseline = /* @__PURE__ */ new Map();
+  for (const [key, list] of byGroup) {
+    const label = [...list].sort((a, b) => b.label.length - a.label.length)[0].label;
+    let basis = list;
+    if (basis.length >= OUTLIER_MIN_N2) {
+      const f = tukeyFences(basis.map((c) => Math.log(c.price)));
+      const kept = basis.filter((c) => Math.log(c.price) >= f.lo && Math.log(c.price) <= f.hi);
+      excluded.outlier += basis.length - kept.length;
+      basis = kept;
+    }
+    const withYK = basis.filter((c) => c.year !== null && c.km !== null);
+    const hasRef = withYK.length >= MIN_GROUP_N;
+    const ref = hasRef ? { year: r02(median2(withYK.map((c) => c.year))), km: r02(median2(withYK.map((c) => c.km))) } : null;
+    let fit = null;
+    if (ref && withYK.length >= MIN_FIT_N2) fit = fitSlopes(withYK, ref.km);
+    const adjById = /* @__PURE__ */ new Map();
+    for (const c of list) {
+      adjById.set(
+        c.view.id,
+        ref && c.year !== null && c.km !== null && fit ? adjustedPrice({ price: c.price, year: c.year, km: c.km }, fit, ref) : c.price
+      );
+    }
+    const baseVals = basis.map((c) => adjById.get(c.view.id));
+    const enough = basis.length >= MIN_GROUP_N;
+    const dist = enough ? describe3(baseVals) : null;
+    const medianAdj = dist ? dist.median : null;
+    const conf = confidenceOfGroup(basis.length, fit);
+    baseline.set(key, { label, conf, fit, ref, adjById, dist, values: baseVals, medianAdj, n: basis.length });
+    const notes = [];
+    if (!enough) notes.push(`Yeterli emsal yok (n=${basis.length} < ${MIN_GROUP_N}); piyasa konumu hesaplanmad\u0131.`);
+    else if (!fit || fit.bKm === null && fit.bYear === null) notes.push("Km/y\u0131l d\xFCzeltmesi yap\u0131lamad\u0131: kar\u015F\u0131la\u015Ft\u0131rma ham fiyat \xFCzerinden, yakla\u015F\u0131k.");
+    if (fit) notes.push(...fit.warnings);
+    groups.push({
+      group: label,
+      n: basis.length,
+      medianAdjustedPrice: medianAdj === null ? null : r02(medianAdj),
+      refYear: ref?.year ?? null,
+      refKm: ref?.km ?? null,
+      kmSlopePctPer10k: fit?.bKm != null ? r12((Math.exp(fit.bKm * 1e4) - 1) * 100) : null,
+      yearSlopePct: fit?.bYear != null ? r12((Math.exp(fit.bYear) - 1) * 100) : null,
+      confidence: conf,
+      note: notes.join(" ")
+    });
+  }
+  const all = cands.map((c) => {
+    const bl = baseline.get(c.key);
+    const adj = bl.adjById.get(c.view.id) ?? null;
+    const hasBaseline = bl.medianAdj !== null && bl.dist !== null;
+    const vs = hasBaseline && adj !== null ? r12((adj / bl.medianAdj - 1) * 100) : null;
+    const pos = hasBaseline && adj !== null ? positionOf(bl.values, bl.dist, adj) : null;
+    const risk = assessRisk(c.view, now, opts.maxAgeDays);
+    const hasDetail = c.view.full;
+    const verdict = verdictOf(vs, risk.flags, hasBaseline, hasDetail);
+    const score = scoreOf(vs, risk.flags, risk.positives, hasDetail);
+    const b = c.view.best;
+    return {
+      rank: 0,
+      id: c.view.id,
+      url: b.url,
+      title: b.title,
+      year: c.year,
+      km: c.km,
+      price: c.price,
+      city: b.city,
+      group: bl.label,
+      adjustedPrice: adj === null || !hasBaseline ? null : r02(adj),
+      vsMarketPct: vs,
+      position: pos ? { percentile: pos.percentile, band: pos.band } : null,
+      damage: risk.damageGroup,
+      damageEvidence: risk.damageEvidence,
+      tramer: risk.tramer,
+      risks: risk.flags,
+      positives: risk.positives,
+      score,
+      verdict,
+      reasons: [
+        ...reasonsOf(c, vs, pos, risk.flags, verdict, bl.label, bl.n),
+        ...vs !== null && bl.conf === "low" ? ["Piyasa taban\u0131 d\xFC\u015F\xFCk g\xFCvenli (emsal az ya da km/y\u0131l d\xFCzeltmesi yap\u0131lamad\u0131); sonu\xE7 yakla\u015F\u0131kt\u0131r."] : []
+      ],
+      nextSteps: nextStepsOf(verdict, hasDetail, risk.flags)
+    };
+  });
+  const sortFn = (a, b) => b.score - a.score || a.price - b.price || (a.id < b.id ? -1 : 1);
+  const main = all.filter((r) => r.verdict !== "risky" && r.verdict !== "no-baseline").sort(sortFn);
+  const noBase = all.filter((r) => r.verdict === "no-baseline").sort(sortFn);
+  const risky = all.filter((r) => r.verdict === "risky").sort(sortFn);
+  const ranked = [...main, ...noBase].slice(0, opts.top).map((r, i) => ({ ...r, rank: i + 1 }));
+  const avoid = risky.slice(0, 5).map((r, i) => ({ ...r, rank: i + 1 }));
+  if (cands.length === 0) warnings.push("Filtrelere uyan, fiyat\u0131 ve g\xF6zlemi g\xFCncel ilan yok; \xF6nce arama sayfalar\u0131n\u0131 i\xE7e aktar\u0131n.");
+  if (groups.some((g) => g.confidence === "insufficient")) warnings.push("Baz\u0131 model gruplar\u0131nda emsal say\u0131s\u0131 yetersiz; o ilanlar\u0131n piyasa konumu hesaplanmad\u0131.");
+  if (main.some((r) => r.verdict !== "risky") && ranked.some((r) => r.damageEvidence === "none")) {
+    warnings.push("Baz\u0131 ilanlarda hasar/tramer bilgisi yok (yaln\u0131zca arama sat\u0131r\u0131 i\xE7e aktar\u0131lm\u0131\u015F); detay sayfalar\u0131 kaydedildik\xE7e s\u0131ralama keskinle\u015Fir.");
+  }
+  return { ranked, avoid, groups, considered: cands.length, excluded, warnings };
+}
+
+// src/tools/rank-cars.ts
+var RANK_CARS_DESCRIPTION = `"En mant\u0131kl\u0131 N ilan": yerel store'daki ilanlar\u0131 filtreler (search_cars ile ayn\u0131 filtreler), ayn\u0131 model grubunun km/model y\u0131l\u0131 d\xFCzeltilmi\u015F piyasa medyan\u0131na g\xF6re %ka\xE7 ucuz/pahal\u0131 oldu\u011Funu hesaplar, hasar/tramer/y\u0131ll\u0131k km/a\xE7\u0131klama risk bayraklar\u0131n\u0131 ekler ve puanlay\u0131p karar verir (strong-candidate, fair, overpriced, check-first, risky, no-baseline). Y\xFCksek riskli ilanlar ana listeden ayr\u0131l\u0131p avoid alt\u0131nda gelir. Her ilan i\xE7in reasons (neden) ve nextSteps (s\u0131radaki ad\u0131m: detay sayfas\u0131, ekspertiz, tramer) verilir; bunlar\u0131 kullan\u0131c\u0131ya AYNEN aktar. groups[].confidence insufficient/low ise kesin yorum yapma. Fiyatlar istek fiyat\u0131d\u0131r; hasar/tramer sat\u0131c\u0131 beyan\u0131d\u0131r; al\u0131m tavsiyesi de\u011Fildir. Veri yoksa \xF6nce search_cars'\u0131n searchUrls'ini kullan\u0131c\u0131ya kaydettir, import_listing_html ile i\xE7e aktar. \u0130nternete ba\u011Flanmaz.`;
+var FILTER_KEYS = {
+  city: true,
+  brand: true,
+  models: true,
+  priceMin: true,
+  priceMax: true,
+  priceCurrency: true,
+  transmission: true,
+  fuel: true,
+  yearMin: true,
+  yearMax: true,
+  kmMin: true,
+  kmMax: true,
+  sellerType: true,
+  bodyType: true,
+  color: true,
+  vehicleCondition: true,
+  enginePower: true,
+  engineVolume: true,
+  drivetrain: true,
+  exchange: true,
+  listedWithin: true,
+  unpaintedOnly: true,
+  noReplacedParts: true,
+  noHeavyDamage: true,
+  warranty: true,
+  unknown: true,
+  includeUnknown: true
+};
+var rankCarsInput = SearchQuerySchema.pick(FILTER_KEYS).extend({
+  /** Ana listedeki ilan sayısı. */
+  top: external_exports.number().int().min(1).max(20).default(5),
+  /** Bu günden eski gözlemli ilanlar elenir. */
+  maxAgeDays: external_exports.number().int().min(1).max(365).default(30)
+});
+var RiskFlag = external_exports.object({ code: external_exports.string(), severity: external_exports.enum(["high", "medium", "low"]), text: external_exports.string() });
+var Ranked = external_exports.object({
+  rank: external_exports.number(),
+  id: external_exports.string(),
+  url: external_exports.string(),
+  title: external_exports.string(),
+  year: external_exports.number().nullable(),
+  km: external_exports.number().nullable(),
+  price: external_exports.number(),
+  city: external_exports.string().nullable(),
+  group: external_exports.string(),
+  adjustedPrice: external_exports.number().nullable(),
+  vsMarketPct: external_exports.number().nullable(),
+  position: external_exports.object({ percentile: external_exports.number(), band: external_exports.enum(["well-below", "below", "typical", "above", "well-above"]) }).nullable(),
+  damage: DamageGroupSchema,
+  damageEvidence: external_exports.enum(["detail", "search-filter", "none"]),
+  tramer: external_exports.string().nullable(),
+  risks: external_exports.array(RiskFlag),
+  positives: external_exports.array(external_exports.string()),
+  score: external_exports.number(),
+  verdict: external_exports.enum(["strong-candidate", "fair", "overpriced", "check-first", "risky", "no-baseline"]),
+  reasons: external_exports.array(external_exports.string()),
+  nextSteps: external_exports.array(external_exports.string())
+});
+var rankCarsOutput = external_exports.object({
+  ranked: external_exports.array(Ranked),
+  avoid: external_exports.array(Ranked),
+  groups: external_exports.array(
+    external_exports.object({
+      group: external_exports.string(),
+      n: external_exports.number(),
+      medianAdjustedPrice: external_exports.number().nullable(),
+      refYear: external_exports.number().nullable(),
+      refKm: external_exports.number().nullable(),
+      kmSlopePctPer10k: external_exports.number().nullable(),
+      yearSlopePct: external_exports.number().nullable(),
+      confidence: external_exports.enum(["insufficient", "low", "medium", "high"]),
+      note: external_exports.string()
+    })
+  ),
+  considered: external_exports.number(),
+  excluded: external_exports.record(external_exports.string(), external_exports.number()),
+  warnings: external_exports.array(external_exports.string())
+});
+async function rankCarsHandler(input2, deps) {
+  const { top, maxAgeDays, ...query } = input2;
+  const result = rankListings(deps.store.records(), query, { top, maxAgeDays }, deps.now());
+  return rankCarsOutput.parse(result);
+}
+
 // src/providers/live-provider.ts
 var LiveStatusSchema = external_exports.enum([
   "ok",
@@ -84544,6 +85757,16 @@ function createServer(deps) {
       outputSchema: importListingHtmlOutput
     },
     (args) => run("import_listing_html", () => importListingHtmlHandler(args, deps))
+  );
+  server2.registerTool(
+    "market_stats",
+    { title: "Piyasa istatisti\u011Fi", description: MARKET_STATS_DESCRIPTION, inputSchema: marketStatsInput, outputSchema: marketStatsOutput },
+    (args) => run("market_stats", () => marketStatsHandler(args, deps))
+  );
+  server2.registerTool(
+    "rank_cars",
+    { title: "En mant\u0131kl\u0131 ilanlar", description: RANK_CARS_DESCRIPTION, inputSchema: rankCarsInput, outputSchema: rankCarsOutput },
+    (args) => run("rank_cars", () => rankCarsHandler(args, deps))
   );
   if (deps.live) {
     server2.registerTool(

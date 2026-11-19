@@ -1,6 +1,6 @@
 # Yapılacaklar (son güncelleme: 2026-11-19)
 
-Durum: v0.2.1 GitHub'da (`main`, 4fdb1df) ve kullanıcı kapsamında eklenti olarak kurulu; v0.2.2 (katalog + kategori filtre profilleri) yerelde commit'li, push/plugin update bekliyor
+Durum: v0.2.1 GitHub'da (`main`, 4fdb1df) ve kullanıcı kapsamında eklenti olarak kurulu; v0.2.2 (katalog) ve v0.3.0 (rank_cars + market_stats) yerelde commit'li, push/plugin update bekliyor
 (`/plugin install sahibinden-car@sahibinden-car`). Hedef: kullanıcı "Claude, bu skill'i yükle" der,
 sonra "2015 Mercedes C200d otomatik, 200 bin km altı, en mantıklı 5 ilanı listele" yazar.
 
@@ -22,12 +22,11 @@ sonra "2015 Mercedes C200d otomatik, 200 bin km altı, en mantıklı 5 ilanı li
 3. **Üretilen URL'leri canlıda örnekle** (az sayıda, elle): BMW X5 SUV filtreleri (`a107181`, `a2321`, `a2319`,
    `a87472`), minivan (VW Caddy: `a767`, `a3807`, `a96780`), `bmw-3-serisi-320d`. Kimlikler sidebar'dan okundu ama
    bu URL'ler sonuç sayısıyla henüz denenmedi. Çoklu değer seçimi hâlâ doğrulanmadı.
-4. **Piyasa istatistiği işini bitir** (`src/analytics/market.ts`, `stats.ts`, `src/tools/market-stats.ts`,
-   `tests/market.test.ts`, `tests/stats.test.ts` hâlâ commit edilmemiş). 3 test başarısız:
-   - eski gözlemlerde güven `medium` olmalı, `high` dönüyor
-   - boyalı/boyasız çelişkisinde `evidenceConflicts` karşılaştırması
-   - `positionOf` bant sınırı (`below` beklenirken `well-below`)
-   Sonra aracı `server.ts`'e kaydet; "en mantıklı N ilan" sıralaması buna dayanacak. Skill'i güncelle.
+4. **`rank_cars` / `market_stats` canlı denemesi (0.3.0'da eklendi).** Store'da henüz tek modelden ≥10-15 ilan
+   yok (21 karışık ilan: Alexa, Taliant, Egea, Clio...), bu yüzden çoğu grup `insufficient`. Bir modelin (ör. Astra
+   1.3 CDTI) 3-4 arama sayfasını + en iyi 8-10 ilanın detayını kaydedip `rank_cars` çıktısını gözle kontrol et.
+   Sonra: açıklama kalıplarını gerçek ilan metinlerine göre ayarla (yanlış alarm/kaçırma), `strong-candidate`
+   eşiği (%8) ve puan ağırlıklarını gerçek veriyle gözden geçir.
 5. **Her kod değişikliğinde:** `npm run bundle`, `package.json` + `src/config.ts` + `.claude-plugin/plugin.json`
    sürümünü artır (sürüm aynı kalırsa `claude plugin update` önbelleği yenilemiyor), commit, push (gkdgbilal,
    HTTPS), `claude plugin marketplace update sahibinden-car && claude plugin update sahibinden-car@sahibinden-car`,

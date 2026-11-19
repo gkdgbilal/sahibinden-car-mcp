@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-19
+
+### Added
+- **`rank_cars` tool** ("is this car worth buying?"): filters the local store with the `search_cars` filters, groups listings by model, prices each one against its group's km/year-adjusted median (same Theil-Sen method as `market_stats`), adds risk flags and returns the top N with `score`, `verdict` (`strong-candidate`, `fair`, `overpriced`, `check-first`, `risky`, `no-baseline`), `reasons` and `nextSteps`. High-risk listings go to a separate `avoid` list; listings priced 25%+ below market are `check-first` (suspicion, not a bargain). Groups with fewer than 5 comparables get no market position; groups with low confidence say so in the reasons.
+- **Risk flags** (`src/analytics/risk.ts`): heavy damage, structural/multiple replaced parts, painted parts, tramer buckets, evidence conflicts (search filter says clean, detail says damaged), implausible km per year, and risky phrases in the description (pert, engine/gearbox fault, odometer tampering, no notary sale, power of attorney, lien, expired inspection, ...). Negated sentences ("pert değil", "ağır hasar kaydı yoktur") are skipped; positive declarations (first owner, authorised service, expert inspection welcome) are listed separately. All of it is seller-declared and labelled as such.
+- **`market_stats` tool** registered (segment statistics, fair band and position for one car, with confidence).
+
+### Fixed
+- Three market-statistics tests were wrong, not the code: stale-observation age uses the newest of observation time and `capturedAt`; search-filter damage evidence only comes from `search` observations; the P10 band boundary is 610,000 for a 600k-700k sample.
+
+### Notes
+- Tool counts: 7 by default, 10 with browser mode on. Fiyatlar are asking prices; this is not buying advice.
+
 ## [0.2.2] - 2026-11-19
 
 ### Added
